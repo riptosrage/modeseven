@@ -60,6 +60,34 @@
   color-scheme: light;
 }
 
+/* Follow the system unless a theme is chosen explicitly. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --m7-ground: #14161a;
+    --m7-ground-dot: #2a2e35;
+    --m7-slot: #1b1d22;
+    --m7-surface-1: #2b2f36;
+    --m7-surface-2: #24272d;
+    --m7-surface-3: #1e2126;
+    --m7-highlight: rgba(255, 255, 255, 0.06);
+    --m7-ink-1: #eef0f3;
+    --m7-ink-2: #a3aab4;
+    --m7-ink-3: #6c737d;
+    --m7-line: rgba(255, 255, 255, 0.07);
+    --m7-wash: rgba(255, 255, 255, 0.05);
+    --m7-wash-2: rgba(255, 255, 255, 0.1);
+    --m7-live: #ff4a3d;
+    --m7-node: #eef0f3;
+    --m7-node-ink: #111316;
+    --m7-focus-ring: #6b9bff;
+    --m7-veil: rgba(10, 11, 13, 0.72);
+    --m7-shadow-rest: 0 1px 1px rgba(0, 0, 0, 0.3), 0 12px 26px -16px rgba(0, 0, 0, 0.7);
+    --m7-shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.3), 0 30px 50px -20px rgba(0, 0, 0, 0.85);
+    --m7-shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+  }
+}
+
 :root[data-theme='dark'] {
   --m7-ground: #14161a;
   --m7-ground-dot: #2a2e35;

@@ -114,7 +114,8 @@ $('#debug').onclick = () => board.debug.set(!board.debug.get());
 board.debug.subscribe((on) => $('#debug').classList.toggle('is-on', on));
 $('#theme').onclick = () => {
   const r = document.documentElement;
-  r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark';
+  const dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme = dark ? 'light' : 'dark';
   try {
     localStorage.setItem('mode7.theme', r.dataset.theme);
   } catch {

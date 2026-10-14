@@ -148,7 +148,7 @@ export class Store {
   }
 
   private load(): Doc | null {
-    if (!this.opts.storageKey || typeof localStorage === 'undefined') return null;
+    if (!this.opts.storageKey) return null;
     try {
       const raw = localStorage.getItem(this.opts.storageKey);
       return raw ? validateDoc(JSON.parse(raw)) : null;
@@ -158,7 +158,7 @@ export class Store {
   }
 
   private scheduleSave() {
-    if (!this.opts.storageKey || typeof localStorage === 'undefined' || this.txn) return;
+    if (!this.opts.storageKey || this.txn) return;
     clearTimeout(this.saveTimer);
     this.saveTimer = window.setTimeout(() => {
       try {
