@@ -53,18 +53,42 @@ Gestures follow iOS wherever iOS has an answer.
 | Arrows / ⇧ + arrows | Move / resize the selected module one cell |
 | Delete | Remove the selected module (with Undo) |
 | E | Toggle Arrange |
+| ⌘K or / | Command palette |
 | [ ] | Previous / next layer |
 | \` | Debug overlay |
 | Escape | Cancel a drag, close a menu, leave full screen or Arrange |
 
 **Tidy** packs everything upward. It's the only gravity on the board.
 
+### Commands (⌘K)
+
+Press ⌘K or / and type. Everything the board can do is a command, and the same commands work from code and from AI.
+
+```
+add knob at 3,2 as Cutoff
+set knob 80
+move knob to 6,0
+resize note to 4x2
+learn knob            (then move a control on your MIDI device)
+layer add Drums
+tilt 60
+list · params · help
+```
+
+### MIDI
+
+Hit **MIDI** in the toolbar (or type `midi`): every mappable control gets a ring. Tap one, move a knob, fader or pad on your controller. Mappings save with the board and undo like anything else. Needs Chrome or Edge for now; Safari and the Mac app don't have Web MIDI yet.
+
 ## Layout
 
 ```
 packages/core/src/
   solver/   pure layout maths: metrics, placement, reflow. No DOM. Unit tested.
-  store/    the document, commands, undo history, transactions, persistence
+  engine.ts the headless engine: doc + module types + params + MIDI + commands
+  store/    the document, commands, undo, transactions, change stream, recorder
+  actions/  the command language: typed verbs, text parser, LLM tool schemas
+  params/   parameter specs and registry
+  midi/     MIDI parsing, learn, mappings
   loop/     one frame clock for everything, Apple-style springs
   render/   board, module shells, camera (pan/zoom/tilt), radial, menus, debug
   input/    the gesture state machine, keyboard
@@ -90,9 +114,33 @@ GitHub builds it automatically on every push to `main` (see `.github/workflows/d
 
 ## Writing a module
 
-```ts
-import { defineModule } from '@mode7/core';
+Declare the controls as params and you get MIDI learn, undo, saving, commands (`set filter.cutoff 2000`) and AI access with no extra code:
 
+```ts
+import { defineModule, param } from '@mode7/core';
+
+export const filter = defineModule({
+  type: 'filter',
+  title: 'Filter',
+  size: [2, 1],
+  params: { cutoff: param.number(20, 20000, 800, { unit: 'Hz', curve: 'exp' }) },
+  mount(el, ctx) {
+    const cutoff = ctx.param('cutoff');
+    el.innerHTML = `<input type="range" min="0" max="1" step="0.001" data-m7-interactive data-m7-param="cutoff"><output></output>`;
+    const [slider, out] = [el.querySelector('input')!, el.querySelector('output')!];
+    const paint = () => ((slider.value = String(cutoff.normal())), (out.textContent = cutoff.text()));
+    paint();
+    slider.onpointerdown = () => cutoff.begin(); // one drag = one undo step
+    slider.onpointerup = () => cutoff.end();
+    slider.oninput = () => cutoff.setNormal(Number(slider.value));
+    return cutoff.subscribe(paint); // MIDI, undo and commands land here too
+  },
+});
+```
+
+Free-form state that isn't a control goes in props:
+
+```ts
 export const counter = defineModule({
   type: 'counter',
   title: 'Counter',
@@ -110,7 +158,22 @@ export const counter = defineModule({
 });
 ```
 
-Register it with `new Board({ modules: [counter, ...] })`. Mark draggable controls inside a module with `data-m7-interactive` so they keep their own drag in Use mode.
+Register it with `new Board({ root, store, modules: [filter, counter, ...] })`. Mark draggable controls inside a module with `data-m7-interactive` so they keep their own drag in Use mode.
+
+### Without a screen
+
+The engine runs headless, in Node, a worker or a test, which is how scripts and AI agents drive a board:
+
+```ts
+import { createEngine, record, replay } from '@mode7/core';
+
+const e = createEngine({ modules: [filter] });
+const rec = record(e.store);
+e.run('add filter at 0,0');
+e.run({ action: 'set', param: 'filter.cutoff', value: 2400 }); // the shape an LLM tool call arrives in
+e.actions.tools();                                              // JSON Schema tool definitions for a model
+await replay(otherStore, rec.stop());                           // the identical board, step by step
+```
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit.
 

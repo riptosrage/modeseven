@@ -1,14 +1,16 @@
 # Architecture
 
-Mode 7 is built like a small game engine: one data store, one clock, and systems that each do one job. Every change follows the same path:
+Mode 7 is built like a small game engine: one data store, one clock, and systems that each do one job.
+
+There are two halves. The **Engine** (`engine.ts`) is everything that isn't pixels: the document, module types, parameters, MIDI and the command language. It has no DOM and runs in a browser, a worker, Node or a test. The **Board** (`render/board.ts`) renders an engine and adds gestures, the camera and overlays. Every change, from any source, follows the same path:
 
 ```
-pointer / keyboard / (MIDI, AI later)
-        │
-        ▼
-  input/gestures.ts ── decides what a touch means, turns it into a command
-        │
-        ▼
+pointer / keyboard        ⌘K text / scripts / AI tool calls        MIDI / (phone remote later)
+        │                              │                                  │
+        ▼                              ▼                                  ▼
+  input/gestures.ts            actions/ (one verb list)             midi/ → params/
+        └──────────────────────────────┼──────────────────────────────────┘
+                                       ▼
   store/ ── Doc (plain JSON) ── reduce(doc, command) ── undo history
         │
         ▼
@@ -32,6 +34,35 @@ pointer / keyboard / (MIDI, AI later)
 ## Commands, history, transactions
 
 `store/store.ts`. `dispatch(cmd)` is one undo step. A gesture opens a **transaction**: every pointer move calls `txn.preview(cmd)`, which applies the command to the doc **as it was when the gesture began**, never to the last preview. That is why modules pushed aside return home when the dragged module moves on, and why a drag is a single undo step (`txn.commit()`), or nothing at all (`txn.cancel()` on Escape).
+
+**Gestures rebase.** If something else changes the doc mid-gesture (a MIDI knob, a remote edit), `dispatch` applies it to the transaction's base and rebuilds the preview on top. Gestures preview *intents* (`place this module here`), not results, so the rebuild is always right. Undo stays in order: the outside change is its own step, the gesture another.
+
+**Coalescing.** `dispatch(cmd, { coalesce: key })`: changes with the same key in quick succession extend one undo step, like typing. A knob drag uses a per-gesture key (one drag, one step), a MIDI sweep uses the control's key.
+
+**The change stream.** `store.changes` emits every committed change (`do` with its commands and column count, or `undo`/`redo`/`replace`). Previews aren't changes; their commit is. `store/recorder.ts` records it into a session file and replays it to the identical doc. Live sync will stream the same thing.
+
+**Persistence** is an adapter (`{ load, save }`). localStorage by default; IndexedDB, a file or a server slot in the same way.
+
+## Actions: one command language
+
+`actions/actions.ts`, registered in `engine.ts` (headless verbs) and `render/board-actions.ts` (camera, focus, modes). Each verb is declared once with typed args, and that one declaration serves:
+
+- **text**: `run('add knob at 3,2 as Cutoff')`, `run('set filter.cutoff 2k')`. Quotes, filler words (`set knob to 80`) and missing keywords (`move knob 4,0`) are fine. Mistakes come back as `{ ok: false, error }` with a usage line, never a throw.
+- **objects**: `run({ action: 'add', type: 'knob', at: [3, 2] })`, which is exactly the shape an LLM tool call arrives in.
+- **tool schemas**: `actions.tools()` returns JSON Schema tool definitions to hand to a model.
+- **help**: `usage(name)` and the ⌘K palette.
+
+Modules are referred to by id, title or type ("the knob"), with a readable error when that's ambiguous.
+
+## Parameters
+
+`params/`. A module declares its controls: `params: { cutoff: param.number(20, 20000, 800, { unit: 'Hz', curve: 'exp' }) }`. Values live in the doc (`record.params`), so they save, undo, replay and sync like everything else. Every param has an **address**, `moduleId.key`, and normalised 0..1 access, which is what MIDI, automation and sliders speak. `spec.ts` is pure maths (coerce, normalise, exp curves, formatting like `2.4 kHz`).
+
+In a module, `ctx.param('cutoff')` gives a handle: `get/set/setNormal/text`, `subscribe` (paint from here, since changes arrive from MIDI, undo or a command too), and `begin/end` to make a drag one undo step. `ctx.begin/end` groups several params (an XY pad).
+
+## MIDI
+
+`midi/midi.ts`. Messages come in through `inject(bytes)`, from Web MIDI (Chrome, Edge), later a native bridge in the Mac app (WebKit has no Web MIDI), the phone, or a test. Mappings (`midi:cc:1:74 → m12.cutoff`) live in the doc. **Map mode** (`render/mapmode.ts`) works like Ableton's: any element a module marks `data-m7-param="key"` gets a ring; tap it, move a control, mapped. Modules write no MIDI code.
 
 ## The solver
 
@@ -81,6 +112,7 @@ Drop targets come from the layout model, not the DOM, with hysteresis so the tar
 - `record`: the saved title and props. `setProps` / `setTitle` write through the store (undoable).
 - `mode` and `held`: pause expensive work while the module is being dragged.
 - `header`: a slot for small buttons.
+- `param(key)`: a declared parameter (see Parameters). Mark its control `data-m7-param="key"` for MIDI learn.
 
 Each module renders into its own `.m7-content` box and can style it freely. A module that throws while mounting shows an error instead of taking down the board. Later, AI-generated modules will mount through the same function inside a sandbox.
 
@@ -90,4 +122,4 @@ Each module renders into its own `.m7-content` box and can style it freely. A mo
 
 ## Debugging
 
-Press \` for the debug overlay: cell outlines, hit zones, camera, frame time and the selected module's rect. `window.board` and `window.store` are exposed in the testbed console.
+Press \` for the debug overlay: cell outlines, hit zones, camera, frame time and the selected module's rect. `window.board`, `window.store` and `window.engine` are exposed in the testbed console: try `engine.run('help')`.

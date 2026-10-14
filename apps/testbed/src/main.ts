@@ -130,6 +130,9 @@ store.cols.subscribe(syncCell);
 syncCell();
 
 $('#tidy').onclick = () => store.dispatch({ t: 'tidy' });
+$('#midi').onclick = () => board.mapMode.set(!board.mapMode.on.get());
+board.mapMode.on.subscribe((on) => $('#midi').classList.toggle('is-on', on));
+$('#cmd').onclick = () => board.palette.open();
 $('#debug').onclick = () => board.debug.set(!board.debug.get());
 board.debug.subscribe((on) => $('#debug').classList.toggle('is-on', on));
 $('#theme').onclick = () => {
@@ -196,4 +199,4 @@ if (isTauri) document.documentElement.classList.add('is-tauri');
 keepStorage();
 registerOffline();
 
-Object.assign(window, { board, store, demo });
+Object.assign(window, { board, store, demo, engine: board.engine });

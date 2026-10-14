@@ -2,6 +2,8 @@ import type { Signal } from '../store/signal';
 import type { ModuleRecord } from '../store/doc';
 import type { SizeClass } from '../solver/metrics';
 import type { Board } from '../render/board';
+import type { ParamHandle } from '../params/registry';
+import type { ParamSpec } from '../params/spec';
 
 export interface ModuleSize {
   /** Position and size in cells. */
@@ -31,6 +33,15 @@ export interface ModuleContext {
   readonly header: HTMLElement;
   setProps(patch: Record<string, unknown>): void;
   setTitle(title: string): void;
+  /**
+   * One of this module's declared params. Read it, set it, subscribe to it.
+   * Changes from MIDI, undo or a remote arrive through `subscribe`, so paint from there.
+   * Mark the control's element with `data-m7-param="key"` and MIDI learn just works.
+   */
+  param(key: string): ParamHandle;
+  /** Everything this module changes between begin() and end() is one undo step (e.g. an XY drag moving two params). */
+  begin(): void;
+  end(): void;
 }
 
 export interface ModuleDef {
@@ -42,6 +53,11 @@ export interface ModuleDef {
   size: [number, number];
   minSize?: [number, number];
   maxSize?: [number, number];
+  /**
+   * The controls this module exposes, by key. Declared here, they're
+   * automatically mappable to MIDI, settable by commands and AI, saved and undoable.
+   */
+  params?: Record<string, ParamSpec>;
   /** Build into `el`. Return a cleanup function. */
   mount(el: HTMLElement, ctx: ModuleContext): void | (() => void);
 }

@@ -10,7 +10,11 @@ export interface ModuleRecord {
   type: string;
   title?: string;
   props?: Record<string, unknown>;
+  /** Values of the module's declared parameters (see `ModuleDef.params`). Missing keys use the spec default. */
+  params?: Record<string, ParamValue>;
 }
+
+export type ParamValue = number | boolean | string;
 
 export interface LayerRecord {
   id: string;
@@ -25,6 +29,8 @@ export interface Doc {
   v: 1;
   layers: LayerRecord[];
   active: number;
+  /** Controller mappings: source key (e.g. `midi:cc:1:74`) → param address (`moduleId.key`). */
+  mappings?: Record<string, string>;
 }
 
 export type Command =
@@ -34,6 +40,9 @@ export type Command =
   | { t: 'layout'; layout: Layout }
   | { t: 'props'; id: string; patch: Record<string, unknown> }
   | { t: 'title'; id: string; title: string }
+  | { t: 'param'; id: string; values: Record<string, ParamValue> }
+  | { t: 'map'; source: string; target: string }
+  | { t: 'unmap'; source: string }
   | { t: 'tidy' }
   | { t: 'layer.add'; id: string; name: string }
   | { t: 'layer.rename'; index: number; name: string }
@@ -84,10 +93,23 @@ export function layoutFor(layer: LayerRecord, cols: number): Layout {
 
 /* ---------------------------------------------------------- reducer */
 
-const withLayer = (doc: Doc, fn: (l: LayerRecord) => LayerRecord, index = doc.active): Doc => ({
-  ...doc,
-  layers: doc.layers.map((l, i) => (i === index ? fn(l) : l)),
-});
+/** Index of the layer holding module `id` (the active layer if none does). */
+export const layerOf = (doc: Doc, id: string) => {
+  if (doc.layers[doc.active]?.modules[id]) return doc.active;
+  const i = doc.layers.findIndex((l) => l.modules[id]);
+  return i < 0 ? doc.active : i;
+};
+
+/** The module record for `id` on any layer. */
+export const moduleOf = (doc: Doc, id: string): ModuleRecord | undefined => doc.layers[layerOf(doc, id)]?.modules[id];
+
+/** Update one layer. Returns the same doc when the layer didn't change, so no-ops never make undo steps. */
+const withLayer = (doc: Doc, fn: (l: LayerRecord) => LayerRecord, index = doc.active): Doc => {
+  const l = doc.layers[index];
+  if (!l) return doc;
+  const next = fn(l);
+  return next === l ? doc : { ...doc, layers: doc.layers.map((x, i) => (i === index ? next : x)) };
+};
 
 const setLayout = (l: LayerRecord, cols: number, layout: Layout): LayerRecord => ({
   ...l,
@@ -106,8 +128,8 @@ export function reduce(doc: Doc, cmd: Command, cols: number): Doc {
         const layout = insert(layoutFor(l, cols), cmd.id, cmd.size, cols, cmd.rect);
         return setLayout({ ...l, modules: { ...l.modules, [cmd.id]: mod } }, cols, layout);
       });
-    case 'remove':
-      return withLayer(doc, (l) => {
+    case 'remove': {
+      const next = withLayer(doc, (l) => {
         if (!l.modules[cmd.id]) return l;
         const modules = { ...l.modules };
         delete modules[cmd.id];
@@ -115,6 +137,8 @@ export function reduce(doc: Doc, cmd: Command, cols: number): Doc {
         for (const k in l.layouts) layouts[k] = remove(l.layouts[k], cmd.id);
         return { ...l, modules, layouts };
       });
+      return next === doc ? doc : dropMappings(next, (target) => target.startsWith(`${cmd.id}.`));
+    }
     case 'place':
       return withLayer(doc, (l) => (l.modules[cmd.id] ? setLayout(l, cols, place(layoutFor(l, cols), cmd.id, cmd.rect, cols)) : l));
     case 'layout':
@@ -131,6 +155,25 @@ export function reduce(doc: Doc, cmd: Command, cols: number): Doc {
         if (!m) return l;
         return { ...l, modules: { ...l.modules, [cmd.id]: { ...m, title: cmd.title } } };
       });
+    case 'param':
+      // Params can be driven from anywhere (MIDI, a remote), so find the module on any layer.
+      return withLayer(doc, (l) => {
+        const m = l.modules[cmd.id];
+        if (!m) return l;
+        const cur = m.params ?? {};
+        if (Object.keys(cmd.values).every((k) => Object.is(cur[k], cmd.values[k]))) return l;
+        return { ...l, modules: { ...l.modules, [cmd.id]: { ...m, params: { ...cur, ...cmd.values } } } };
+      }, layerOf(doc, cmd.id));
+    case 'map':
+      if (doc.mappings?.[cmd.source] === cmd.target) return doc;
+      // One source drives one target; a target may have several sources.
+      return { ...doc, mappings: { ...doc.mappings, [cmd.source]: cmd.target } };
+    case 'unmap': {
+      if (!doc.mappings?.[cmd.source]) return doc;
+      const mappings = { ...doc.mappings };
+      delete mappings[cmd.source];
+      return { ...doc, mappings };
+    }
     case 'tidy':
       return withLayer(doc, (l) => setLayout(l, cols, tidy(layoutFor(l, cols), cols)));
     case 'layer.add':
@@ -139,18 +182,28 @@ export function reduce(doc: Doc, cmd: Command, cols: number): Doc {
       return withLayer(doc, (l) => ({ ...l, name: cmd.name }), cmd.index);
     case 'layer.remove': {
       if (doc.layers.length <= 1) return doc;
+      const gone = doc.layers[cmd.index];
+      if (!gone) return doc;
       const layers = doc.layers.filter((_, i) => i !== cmd.index);
-      return { ...doc, layers, active: Math.min(doc.active, layers.length - 1) };
+      const next = { ...doc, layers, active: Math.min(doc.active, layers.length - 1) };
+      return dropMappings(next, (target) => target.split('.')[0] in gone.modules);
     }
     case 'layer.select':
       return cmd.index === doc.active || !doc.layers[cmd.index] ? doc : { ...doc, active: cmd.index };
   }
 }
 
+const dropMappings = (doc: Doc, drop: (target: string) => boolean): Doc => {
+  if (!doc.mappings) return doc;
+  const kept = Object.entries(doc.mappings).filter(([, t]) => !drop(t));
+  return kept.length === Object.keys(doc.mappings).length ? doc : { ...doc, mappings: Object.fromEntries(kept) };
+};
+
 /** Minimal schema check for loaded/pasted docs. Returns null if it isn't one. */
 export function validateDoc(x: unknown): Doc | null {
   const d = x as Doc;
   if (!d || d.v !== 1 || !Array.isArray(d.layers) || !d.layers.length) return null;
   for (const l of d.layers) if (typeof l.id !== 'string' || typeof l.modules !== 'object' || typeof l.layouts !== 'object') return null;
+  if (d.mappings !== undefined && (typeof d.mappings !== 'object' || d.mappings === null)) return null;
   return { ...d, active: Math.min(Math.max(0, d.active | 0), d.layers.length - 1) };
 }

@@ -1,10 +1,9 @@
 import type { Board } from '../render/board';
 import { MAX_TILT } from '../render/board';
 import type { Transaction } from '../store/store';
-import type { Layout, Rect } from '../solver/geometry';
+import type { Rect } from '../solver/geometry';
 import { clamp, sameRect } from '../solver/geometry';
 import { DETENTS, SIZE_NAMES, cellAt, sizeClass, spanToCells, toCellF } from '../solver/metrics';
-import { place } from '../solver/place';
 import { SPRINGS, project } from '../loop/spring';
 import type { Dir } from '../render/shell';
 
@@ -46,8 +45,8 @@ interface Pending {
 }
 
 type Active =
-  | { k: 'move'; mod: string; txn: Transaction; base: Layout; grab: { x: number; y: number }; target: Rect; start: Rect }
-  | { k: 'resize'; mod: string; dir: Dir; txn: Transaction; base: Layout; start: Rect; startPx: { x: number; y: number; w: number; h: number }; w0: { x: number; y: number }; target: Rect }
+  | { k: 'move'; mod: string; txn: Transaction; grab: { x: number; y: number }; target: Rect; start: Rect }
+  | { k: 'resize'; mod: string; dir: Dir; txn: Transaction; start: Rect; startPx: { x: number; y: number; w: number; h: number }; w0: { x: number; y: number }; target: Rect }
   | { k: 'draw'; c0: { x: number; y: number }; rect: Rect }
   | { k: 'pan' }
   | { k: 'pinch'; d0: number; z0: number; mid: { x: number; y: number } };
@@ -350,7 +349,7 @@ export class Gestures {
     s.el.classList.add('is-held');
     s.lift.target = 1.035;
     b.hideSlot();
-    this.a = { k: 'move', mod, txn: b.store.begin(), base, grab: { x: w.x - s.x.value, y: w.y - s.y.value }, target: start, start };
+    this.a = { k: 'move', mod, txn: b.store.begin(), grab: { x: w.x - s.x.value, y: w.y - s.y.value }, target: start, start };
     if (this.p) this.capture(this.p.id);
     b.showGhost(start);
     b.kick();
@@ -382,7 +381,9 @@ export class Gestures {
     ny = Math.max(0, ny);
     if (nx === t.x && ny === t.y) return;
     a.target = { ...t, x: nx, y: ny };
-    a.txn.preview({ t: 'layout', layout: place(a.base, a.mod, a.target, m.cols) });
+    // Preview the intent, not the result: if something else changes the doc mid-gesture
+    // (MIDI, a remote edit), the store rebases this preview on top of it.
+    a.txn.preview({ t: 'place', id: a.mod, rect: a.target });
     b.showGhost(a.target);
   }
 
@@ -452,7 +453,6 @@ export class Gestures {
       mod,
       dir,
       txn: b.store.begin(),
-      base,
       start,
       startPx: { x: s.x.value, y: s.y.value, w: s.w.value, h: s.h.value },
       w0: b.toWorld(cx, cy),
@@ -506,7 +506,7 @@ export class Gestures {
     b.showBadge(`${cw} × ${ch} · ${SIZE_NAMES[cls]}`, cx, cy);
     if (sameRect(next, t)) return;
     a.target = next;
-    a.txn.preview({ t: 'layout', layout: place(a.base, a.mod, next, m.cols) });
+    a.txn.preview({ t: 'place', id: a.mod, rect: next });
     b.showGhost(next);
   }
 

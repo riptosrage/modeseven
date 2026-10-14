@@ -7,6 +7,7 @@ declare global {
   interface Window {
     board: any;
     store: any;
+    engine: any;
   }
 }
 
@@ -98,7 +99,49 @@ test('a control inside a module keeps its own drag in Use mode', async ({ page }
   const k = await box(page, '.m7-mod[data-id="d"] .knob');
   await drag(page, { x: k.x + k.width / 2, y: k.y + k.height / 2 }, { x: k.x + k.width / 2, y: k.y - 40 });
   expect((await layout(page)).d).toEqual(before);
-  expect(await page.evaluate(() => window.store.layer.modules.d.props.value)).toBeGreaterThan(0.5);
+  expect(await page.evaluate(() => window.store.layer.modules.d.params.value)).toBeGreaterThan(50);
+});
+
+test('a knob drag is one undo step', async ({ page }) => {
+  const k = await box(page, '.m7-mod[data-id="d"] .knob');
+  await drag(page, { x: k.x + k.width / 2, y: k.y + k.height / 2 }, { x: k.x + k.width / 2, y: k.y - 60 });
+  expect(await page.evaluate(() => window.engine.params.get('d.value'))).toBeGreaterThan(70);
+  await page.keyboard.press('Control+z');
+  expect(await page.evaluate(() => window.engine.params.get('d.value'))).toBe(50);
+});
+
+test('⌘K runs a typed command', async ({ page }) => {
+  await page.keyboard.press('Control+k');
+  await expect(page.locator('.m7-palette-input')).toBeFocused();
+  await page.keyboard.type('add knob at 10,6');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.m7-palette')).toBeHidden();
+  const l = await layout(page);
+  expect(Object.values(l)).toContainEqual({ x: 10, y: 6, w: 1, h: 1 });
+  // Mistakes are explained in place, not thrown.
+  await page.keyboard.press('/');
+  await page.keyboard.type('add synth');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.m7-palette-out')).toContainText('No module type');
+});
+
+test('MIDI map: tap a control, move a hardware knob, it follows', async ({ page }) => {
+  await page.locator('#midi').click();
+  await expect(page.locator('.m7-maphint')).toBeVisible();
+  await page.locator('.m7-mod[data-id="d"] .knob').click();
+  await expect(page.locator('.m7-mod[data-id="d"] .knob')).toHaveClass(/is-learning/);
+  // Fake a controller: CC 21 on channel 1.
+  await page.evaluate(() => window.engine.midi.inject([0xb0, 21, 100]));
+  await expect(page.locator('.m7-mod[data-id="d"] .knob')).toHaveAttribute('data-m7-mapped', 'CC 21');
+  await page.evaluate(() => window.engine.midi.inject([0xb0, 21, 0]));
+  await expect(page.locator('.m7-mod[data-id="d"] .knob-val')).toHaveText('0');
+  await page.evaluate(() => window.engine.midi.inject([0xb0, 21, 127]));
+  await expect(page.locator('.m7-mod[data-id="d"] .knob-val')).toHaveText('100');
+  // Leaving map mode keeps the mapping working.
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.m7-maphint')).toBeHidden();
+  await page.evaluate(() => window.engine.midi.inject([0xb0, 21, 64]));
+  await expect(page.locator('.m7-mod[data-id="d"] .knob-val')).toHaveText('50');
 });
 
 test('long-press on a header enters Arrange and keeps dragging', async ({ page }) => {

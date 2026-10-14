@@ -14,11 +14,18 @@ import { icons } from './icons';
 import { Gestures } from '../input/gestures';
 import { Keyboard } from '../input/keyboard';
 import { Debug } from './debug';
+import { Engine, newId } from '../engine';
+import type { ActionInput } from '../actions/actions';
+import { boardActions } from './board-actions';
+import { MapMode } from './mapmode';
+import { Palette } from './palette';
 
 export interface BoardOptions {
   root: HTMLElement;
-  store: Store;
-  modules: ModuleDef[];
+  /** The headless engine to render. Or pass `store` and `modules` and one is made for you. */
+  engine?: Engine;
+  store?: Store;
+  modules?: ModuleDef[];
   /** Radial add menu. Leaf keys that match a module type add that module. */
   addMenu?: RadialNode[];
   /** Intercept a radial pick (e.g. open an AI prompt). Return true if handled. */
@@ -32,14 +39,15 @@ export const MIN_ZOOM = 0.25;
 export const MAX_ZOOM = 2.5;
 export const MAX_TILT = 72;
 
-let seq = 0;
-export const newId = (prefix = 'm') => `${prefix}${Date.now().toString(36)}${(seq++).toString(36)}`;
+export { newId };
 
 /**
  * The board: renders the store, owns the camera and the frame loop, and
  * hosts gestures. One board per surface.
  */
 export class Board {
+  /** Document, module types, params, MIDI and the command language. Everything that isn't pixels. */
+  readonly engine: Engine;
   readonly store: Store;
   readonly clock = new Clock();
   readonly mode = signal<Mode>('use');
@@ -74,18 +82,19 @@ export class Board {
   /** Perspective strength for tilt, as a multiple of the viewport's longer side. Lower = more dramatic. */
   private perspective = 1.1;
   readonly shells = new Map<string, Shell>();
-  private defs = new Map<string, ModuleDef>();
   private lastTransform = '';
   private returning: string | null = null;
   private veil: HTMLElement | null = null;
   private disposers: (() => void)[] = [];
   readonly gestures: Gestures;
+  readonly mapMode: MapMode;
+  readonly palette: Palette;
 
   constructor(readonly opts: BoardOptions) {
-    this.store = opts.store;
+    this.engine = opts.engine ?? new Engine({ store: opts.store, modules: opts.modules ?? [] });
+    this.store = this.engine.store;
     this.root = opts.root;
     this.metricsOptions = signal(opts.metrics ?? {});
-    opts.modules.forEach((d) => this.defs.set(d.type, d));
 
     this.root.classList.add('m7');
     this.root.innerHTML = `
@@ -139,6 +148,10 @@ export class Board {
     const kb = new Keyboard(this);
     this.disposers.push(() => this.gestures.destroy(), () => kb.destroy());
     new Debug(this);
+    this.mapMode = new MapMode(this);
+    this.palette = new Palette(this);
+    this.engine.actions.register(...boardActions(this));
+    this.disposers.push(() => this.mapMode.destroy(), () => this.palette.destroy());
 
     this.sync();
     this.renderDock();
@@ -148,20 +161,28 @@ export class Board {
   /* ------------------------------------------------------------ modules */
 
   def(type: string) {
-    return this.defs.get(type);
+    return this.engine.def(type);
   }
 
   get types() {
-    return [...this.defs.values()];
+    return this.engine.types;
+  }
+
+  /** Run a command, as text or an object. See `engine.actions` for the list. */
+  run(input: ActionInput) {
+    return this.engine.run(input);
   }
 
   /** Add a module. With a rect it goes there, pushing others aside; otherwise the first free spot. */
   add(type: string, rect?: Rect, extra: { title?: string; props?: Record<string, unknown> } = {}) {
-    const d = this.def(type);
-    const [w, h] = d?.size ?? [2, 2];
-    const id = newId();
-    this.store.dispatch({ t: 'add', id, type, size: { w, h }, rect, ...extra });
+    const id = this.engine.add(type, rect, extra);
     this.selected.set(id);
+    this.pop(id);
+    return id;
+  }
+
+  /** Play the "just added" pop on a module. */
+  pop(id: string) {
     requestAnimationFrame(() => {
       const el = this.shells.get(id)?.el;
       if (!el) return;
@@ -170,7 +191,20 @@ export class Board {
       el.addEventListener('animationend', (e) => e.animationName === 'm7-pop' && el.classList.remove('is-new'));
       setTimeout(() => el.classList.remove('is-new'), 400);
     });
-    return id;
+  }
+
+  /** Glide the camera just enough to bring a module into view. */
+  reveal(id: string) {
+    const r = this.store.layout()[id];
+    if (!r) return;
+    const p = this.px(r);
+    const c = this.cameraTarget();
+    const halfH = this.vp.h / 2 / c.zoom;
+    const top = c.y - halfH;
+    const bottomY = c.y + halfH;
+    const pad = this.metrics.pitch * 0.5;
+    if (p.y - pad < top) this.setCamera({ y: p.y - pad + halfH });
+    else if (p.y + p.h + pad > bottomY) this.setCamera({ y: Math.min(p.y - pad + halfH, p.y + p.h + pad - halfH) });
   }
 
   remove(id: string) {
@@ -254,6 +288,7 @@ export class Board {
       s.el.classList.toggle('is-selected', this.selected.get() === id);
     }
     this.sizeGrid();
+    if (this.mapMode?.on.get()) this.mapMode.paint();
     this.kick();
   }
 

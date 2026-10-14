@@ -6,6 +6,7 @@ import { sizeClass } from '../solver/metrics';
 import type { Mode, ModuleContext, ModuleSize } from '../modules/types';
 import type { Board } from './board';
 import { icons } from './icons';
+import { gestureKey } from '../params/registry';
 
 const DIRS = ['n', 'e', 's', 'w', 'ne', 'nw', 'se', 'sw'] as const;
 export type Dir = (typeof DIRS)[number];
@@ -32,6 +33,7 @@ export class Shell {
   readonly held = signal(false);
   rect: Rect;
   private cleanup?: () => void;
+  private gesture: string | null = null;
   private placed = false;
   private last = { x: -1e9, y: -1e9, w: -1e9, h: -1e9, s: -1e9 };
 
@@ -87,6 +89,9 @@ export class Shell {
       header: this.header,
       setProps: (patch) => this.board.store.dispatch({ t: 'props', id: rec.id, patch }),
       setTitle: (title) => this.board.store.dispatch({ t: 'title', id: rec.id, title }),
+      param: (key) => this.board.engine.params.handle(rec.id, key, () => this.gesture),
+      begin: () => void (this.gesture = gestureKey(rec.id)),
+      end: () => void (this.gesture = null),
     };
     try {
       const c = def.mount(this.body, ctx);

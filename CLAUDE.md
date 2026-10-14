@@ -29,7 +29,10 @@ In a sandbox without Playwright browsers, set `PW_CHROMIUM` to a Chromium binary
 ## Rules of the codebase
 
 - **Layout maths stays pure.** Anything in `packages/core/src/solver` has no DOM and gets a unit test. A layout bug becomes a solver test first.
-- **Every change is a command.** UI never mutates the doc; it dispatches (`store.dispatch`) or previews inside a transaction (`store.begin()`). Gestures always preview from `txn.base`, never from the previous preview.
+- **The engine is headless.** `engine.ts`, `store/`, `solver/`, `params/`, `actions/`, `midi/` never touch the DOM; they get unit tests in Node. Pixels live in `render/` and `input/`.
+- **Every verb is an action.** New capability = an `ActionDef` (engine or board), so ⌘K, scripts and AI get it for free. Actions never throw at callers; errors explain themselves with a usage line.
+- **Every control is a param.** Module controls are declared in `params` and read/written through `ctx.param()`, painted from `subscribe`. Mark the element `data-m7-param="key"`. Free-form state stays in props.
+- **Every change is a command.** UI never mutates the doc; it dispatches (`store.dispatch`) or previews inside a transaction (`store.begin()`). Gestures always preview from `txn.base`, never from the previous preview, and preview intents (`place`), not computed layouts, so outside changes rebase cleanly.
 - **Pegboard: no gravity.** Modules stay put. Only `tidy` compacts.
 - **Arrange is entered from a module's header (long-press) or an explicit button, never from module content.**
 - **One clock.** Animate through springs stepped by `board.clock`; no `setInterval`, no CSS transitions on positions. The loop must go idle when nothing moves.
