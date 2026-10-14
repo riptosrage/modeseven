@@ -91,6 +91,17 @@ export function layoutFor(layer: LayerRecord, cols: number): Layout {
   return out;
 }
 
+/**
+ * `next` has the same modules (ids) and layouts as `prev`, only their
+ * contents changed (a param, props, a title): share the derived-layout cache,
+ * so a knob turn on a 1,000-module board doesn't re-derive any layout.
+ */
+const sameShape = (prev: LayerRecord, next: LayerRecord) => {
+  const cache = derived.get(prev);
+  if (cache && next.layouts === prev.layouts) derived.set(next, cache);
+  return next;
+};
+
 /* ---------------------------------------------------------- reducer */
 
 /** Index of the layer holding module `id` (the active layer if none does). */
@@ -147,13 +158,13 @@ export function reduce(doc: Doc, cmd: Command, cols: number): Doc {
       return withLayer(doc, (l) => {
         const m = l.modules[cmd.id];
         if (!m) return l;
-        return { ...l, modules: { ...l.modules, [cmd.id]: { ...m, props: { ...(m.props ?? {}), ...cmd.patch } } } };
+        return sameShape(l, { ...l, modules: { ...l.modules, [cmd.id]: { ...m, props: { ...(m.props ?? {}), ...cmd.patch } } } });
       });
     case 'title':
       return withLayer(doc, (l) => {
         const m = l.modules[cmd.id];
         if (!m) return l;
-        return { ...l, modules: { ...l.modules, [cmd.id]: { ...m, title: cmd.title } } };
+        return sameShape(l, { ...l, modules: { ...l.modules, [cmd.id]: { ...m, title: cmd.title } } });
       });
     case 'param':
       // Params can be driven from anywhere (MIDI, a remote), so find the module on any layer.
@@ -162,7 +173,7 @@ export function reduce(doc: Doc, cmd: Command, cols: number): Doc {
         if (!m) return l;
         const cur = m.params ?? {};
         if (Object.keys(cmd.values).every((k) => Object.is(cur[k], cmd.values[k]))) return l;
-        return { ...l, modules: { ...l.modules, [cmd.id]: { ...m, params: { ...cur, ...cmd.values } } } };
+        return sameShape(l, { ...l, modules: { ...l.modules, [cmd.id]: { ...m, params: { ...cur, ...cmd.values } } } });
       }, layerOf(doc, cmd.id));
     case 'map':
       if (doc.mappings?.[cmd.source] === cmd.target) return doc;
@@ -179,7 +190,7 @@ export function reduce(doc: Doc, cmd: Command, cols: number): Doc {
     case 'layer.add':
       return { ...doc, layers: [...doc.layers, { id: cmd.id, name: cmd.name, modules: {}, layouts: {} }], active: doc.layers.length };
     case 'layer.rename':
-      return withLayer(doc, (l) => ({ ...l, name: cmd.name }), cmd.index);
+      return withLayer(doc, (l) => sameShape(l, { ...l, name: cmd.name }), cmd.index);
     case 'layer.remove': {
       if (doc.layers.length <= 1) return doc;
       const gone = doc.layers[cmd.index];

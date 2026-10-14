@@ -29,6 +29,8 @@ export interface ModuleContext {
   readonly mode: Signal<Mode>;
   /** True while the module is being dragged or resized. Pause expensive work. */
   readonly held: Signal<boolean>;
+  /** False while off screen or too small to see. Stop drawing (animation frames, meters) until it's true again. */
+  readonly visible: Signal<boolean>;
   /** Slot in the header for small buttons or readouts. */
   readonly header: HTMLElement;
   setProps(patch: Record<string, unknown>): void;
@@ -58,6 +60,11 @@ export interface ModuleDef {
    * automatically mappable to MIDI, settable by commands and AI, saved and undoable.
    */
   params?: Record<string, ParamSpec>;
+  /**
+   * Keep this module mounted and running even when it's off screen (an audio
+   * engine, a clock source). By default content is built on first sight.
+   */
+  keepAlive?: boolean;
   /** Build into `el`. Return a cleanup function. */
   mount(el: HTMLElement, ctx: ModuleContext): void | (() => void);
 }

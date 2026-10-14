@@ -194,6 +194,41 @@ $('#open').onclick = async () => {
   }
 };
 
+/* ---- stress test: `stress 1000` in ⌘K ---- */
+board.engine.actions.register({
+  name: 'stress',
+  describe: 'Fill a new layer with lots of modules, to check the board stays smooth.',
+  args: [{ name: 'count', type: 'number', optional: true }],
+  run(a, e) {
+    const n = Math.max(1, Math.min(5000, Math.round(a.count ?? 1000)));
+    const cols = e.store.cols.get();
+    const sizes: [number, number][] = [[1, 1], [2, 2], [2, 1], [4, 2], [2, 4], [1, 2], [3, 3]];
+    const types = ['blank', 'blank', 'blank', 'knob', 'note', 'xy', 'wave'];
+    // Pack in reading order with a simple skyline, then add everything as one undo step.
+    const heights = new Array(cols).fill(0);
+    const tag = Date.now().toString(36);
+    const cmds: Parameters<typeof store.dispatch>[0] = [{ t: "layer.add", id: `stress-${tag}`, name: `Stress ${n}` }];
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < n; i++) {
+      const type = types[Math.floor(rnd() * types.length)];
+      const def = e.def(type)!;
+      let [w, h] = type === 'blank' ? sizes[Math.floor(rnd() * sizes.length)] : def.size;
+      w = Math.min(w, cols);
+      let bestX = 0;
+      let bestY = Infinity;
+      for (let x = 0; x <= cols - w; x++) {
+        const y = Math.max(...heights.slice(x, x + w));
+        if (y < bestY) (bestY = y), (bestX = x);
+      }
+      for (let x = bestX; x < bestX + w; x++) heights[x] = bestY + h;
+      cmds.push({ t: 'add', id: `s${tag}-${i}`, type, size: { w, h }, rect: { x: bestX, y: bestY, w, h }, props: type === 'blank' ? { tint: i % 6 } : undefined });
+    }
+    e.store.dispatch(cmds);
+    return `${n} modules on a new layer`;
+  },
+});
+
 /* ---- which build is this ---- */
 declare const __BUILD__: string;
 $('#build').textContent = import.meta.env.DEV ? 'dev' : __BUILD__;

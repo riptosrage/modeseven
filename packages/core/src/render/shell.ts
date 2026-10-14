@@ -31,7 +31,14 @@ export class Shell {
   readonly size: Signal<ModuleSize>;
   readonly record: Signal<ModuleRecord>;
   readonly held = signal(false);
+  /** Content can be seen (on screen, not simplified). Modules pause drawing while false. */
+  readonly visible = signal(false);
   rect: Rect;
+  /** Content is built on first sight, so a 1,000-module board opens instantly. */
+  private mounted = false;
+  private culled = false;
+  private lod = false;
+  private mode: Signal<Mode>;
   private cleanup?: () => void;
   private gesture: string | null = null;
   private placed = false;
@@ -61,8 +68,50 @@ export class Shell {
     this.body = el.querySelector('.m7-content')!;
     this.header = el.querySelector('.m7-actions')!;
     this.titleEl = el.querySelector('.m7-title')!;
+    this.mode = mode;
 
-    this.mount(mode);
+    const def = board.def(rec.type);
+    this.titleEl.textContent = rec.title ?? def?.title ?? rec.type;
+    el.dataset.type = rec.type;
+    this.syncClass();
+    if (def?.keepAlive) this.ensureMounted();
+  }
+
+  /** Build the module's content if it hasn't been yet. */
+  ensureMounted() {
+    if (this.mounted) return;
+    this.mounted = true;
+    this.mount(this.mode);
+  }
+
+  /** Off screen: hidden and asleep. Back on screen: awake. (The board mounts content once it's big enough to see.) */
+  setVisible(v: boolean) {
+    if (this.culled === !v) return;
+    this.culled = !v;
+    this.el.classList.toggle('is-culled', !v);
+    if (v) {
+      // Force a full style write: positions moved while hidden.
+      this.last = { x: -1e9, y: -1e9, w: -1e9, h: -1e9, s: -1e9 };
+      this.write();
+    }
+    this.syncVisible();
+  }
+
+  /** Content can be seen: on screen and not simplified. */
+  private syncVisible() {
+    this.visible.set(!this.culled && !this.lod);
+  }
+
+  /** Too small on screen to read: drop the content and shadows, keep the shape and colour. */
+  setLod(far: boolean) {
+    if (far === this.lod) return;
+    this.lod = far;
+    this.el.classList.toggle('is-lod', far);
+    this.syncVisible();
+  }
+
+  get isCulled() {
+    return this.culled;
   }
 
   get id() {
@@ -72,9 +121,6 @@ export class Shell {
   private mount(mode: Signal<Mode>) {
     const rec = this.record.get();
     const def = this.board.def(rec.type);
-    this.titleEl.textContent = rec.title ?? def?.title ?? rec.type;
-    this.el.dataset.type = rec.type;
-    this.syncClass();
     if (!def) {
       this.body.innerHTML = `<div class="m7-missing">No module called “${rec.type}”</div>`;
       return;
@@ -86,6 +132,7 @@ export class Shell {
       record: this.record,
       mode,
       held: this.held,
+      visible: this.visible,
       header: this.header,
       setProps: (patch) => this.board.store.dispatch({ t: 'props', id: rec.id, patch }),
       setTitle: (title) => this.board.store.dispatch({ t: 'title', id: rec.id, title }),
@@ -107,21 +154,27 @@ export class Shell {
     const prev = this.record.get();
     if (prev === rec) return;
     this.record.set(rec);
+    const title = rec.title ?? this.board.def(rec.type)?.title ?? rec.type;
+    if (this.titleEl.textContent !== title) this.titleEl.textContent = title;
     if (prev.type !== rec.type) {
+      this.el.dataset.type = rec.type;
       this.cleanup?.();
       this.cleanup = undefined;
       this.body.innerHTML = '';
       this.header.innerHTML = '';
-      this.mount(mode);
-    } else this.titleEl.textContent = rec.title ?? this.board.def(rec.type)?.title ?? rec.type;
+      this.mode = mode;
+      if (this.mounted) this.mount(mode);
+    }
   }
 
   /** New cell rect from the layout. */
   setRect(r: Rect) {
     this.rect = r;
     const s = this.size.get();
-    if (s.w !== r.w || s.h !== r.h || s.x !== r.x || s.y !== r.y) this.size.set({ ...s, x: r.x, y: r.y, w: r.w, h: r.h, cls: sizeClass(r.w, r.h) });
-    this.syncClass();
+    if (s.w !== r.w || s.h !== r.h || s.x !== r.x || s.y !== r.y) {
+      this.size.set({ ...s, x: r.x, y: r.y, w: r.w, h: r.h, cls: sizeClass(r.w, r.h) });
+      this.syncClass();
+    }
   }
 
   /** Animate (or jump, the first time) to a px rect. Ignored while held by a gesture. */
@@ -159,6 +212,7 @@ export class Shell {
   }
 
   write() {
+    if (this.culled) return;
     const x = this.x.value, y = this.y.value, w = this.w.value, h = this.h.value, s = this.lift.value;
     const L = this.last;
     if (x !== L.x || y !== L.y || s !== L.s) {
@@ -177,6 +231,7 @@ export class Shell {
 
   private syncClass() {
     const s = this.size.get();
+    if (this.el.dataset.cls === s.cls) return;
     this.el.classList.toggle('is-tile', s.cls === 'tile');
     this.el.dataset.cls = s.cls;
   }

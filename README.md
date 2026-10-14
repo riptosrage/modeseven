@@ -73,6 +73,7 @@ learn knob            (then move a control on your MIDI device)
 layer add Drums
 tilt 60
 list · params · help
+stress 1000           (a layer of 1,000 modules, to feel the scale)
 ```
 
 ### MIDI

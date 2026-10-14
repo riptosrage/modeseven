@@ -38,6 +38,9 @@ export interface BoardOptions {
 export const MIN_ZOOM = 0.25;
 export const MAX_ZOOM = 2.5;
 export const MAX_TILT = 72;
+/** When one grid cell is smaller than this on screen (px), modules drop their content: below a fingertip, it can't be used anyway. */
+const LOD_HIDE = 40;
+const LOD_SHOW = 46;
 
 export { newId };
 
@@ -132,7 +135,7 @@ export class Board {
       this.store.doc.subscribe((d, p) => {
         if (d.active !== p.active) this.onLayerSwitch();
         this.sync();
-        this.renderDock();
+        if (d.layers.length !== p.layers.length || d.active !== p.active || d.layers.some((l, i) => l.name !== p.layers[i]?.name)) this.renderDock();
       }),
       this.store.cols.subscribe(() => this.sync()),
       this.metricsOptions.subscribe(() => this.measure(false)),
@@ -142,6 +145,10 @@ export class Board {
         this.renderDock();
       }),
       this.debug.subscribe((on) => this.root.classList.toggle('m7-debug', on)),
+      this.selected.subscribe((id, prev) => {
+        if (prev) this.shells.get(prev)?.el.classList.remove('is-selected');
+        if (id) this.shells.get(id)?.el.classList.add('is-selected');
+      }),
     );
 
     this.gestures = new Gestures(this);
@@ -262,19 +269,27 @@ export class Board {
 
   /* ------------------------------------------------------------- layout */
 
-  /** Shells ↔ store. Called on any doc or column change. */
+  /**
+   * Shells ↔ store. Called on any doc or column change. Incremental: a knob
+   * turn touches one shell, not a thousand. Layout work only runs when the
+   * layout or metrics actually changed.
+   */
   sync() {
     const layer = this.store.layer;
     const layout = this.store.layout();
     const m = this.metrics;
-    for (const [id, s] of this.shells) {
-      if (!layer.modules[id]) {
-        s.destroy();
-        this.shells.delete(id);
-        if (this.focused.get() === id) this.focused.set(null);
+    const layoutChanged = layout !== this.synced.layout || m !== this.synced.metrics;
+    let created = false;
+    if (layer.modules !== this.synced.modules) {
+      for (const [id, s] of this.shells) {
+        if (!layer.modules[id]) {
+          s.destroy();
+          this.shells.delete(id);
+          if (this.focused.get() === id) this.focused.set(null);
+        }
       }
     }
-    for (const id of Object.keys(layer.modules)) {
+    for (const id in layer.modules) {
       const rect = layout[id];
       if (!rect) continue;
       let s = this.shells.get(id);
@@ -282,14 +297,71 @@ export class Board {
         s = new Shell(this, layer.modules[id], rect, this.mode);
         this.shells.set(id, s);
         this.mods.appendChild(s.el);
-      } else s.update(layer.modules[id], this.mode);
-      s.setRect(rect);
-      if (this.focused.get() !== id && this.returning !== id) s.target(toPx(rect, m));
-      s.el.classList.toggle('is-selected', this.selected.get() === id);
+        if (this.selected.get() === id) s.el.classList.add('is-selected');
+        s.setRect(rect);
+        s.target(toPx(rect, m));
+        created = true;
+        continue;
+      }
+      s.update(layer.modules[id], this.mode);
+      if (layoutChanged) {
+        s.setRect(rect);
+        if (this.focused.get() !== id && this.returning !== id) s.target(toPx(rect, m));
+      }
     }
-    this.sizeGrid();
+    this.synced = { layout, metrics: m, modules: layer.modules };
+    if (layoutChanged) this.sizeGrid();
     if (this.mapMode?.on.get()) this.mapMode.paint();
+    if (layoutChanged || created) this.cullDirty = true;
     this.kick();
+  }
+  /** Something moved or appeared: re-check visibility on the next frame. */
+  private cullDirty = true;
+  private synced: { layout: unknown; metrics: unknown; modules: unknown } = { layout: null, metrics: null, modules: null };
+
+  /**
+   * Visibility and level of detail, like a game engine. Modules outside the
+   * camera's view are hidden and asleep (and not even built until first
+   * seen). Modules smaller on screen than a touch target drop their content
+   * and keep just their shape. Cheap enough to run every frame.
+   */
+  private cull() {
+    if (!this.vp.w) return;
+    const c = this.camera();
+    const vp = this.vp;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [sx, sy] of [[0, 0], [vp.w, 0], [0, vp.h], [vp.w, vp.h]]) {
+      const w = screenToWorld(sx, sy, c, vp);
+      x0 = Math.min(x0, w.x); x1 = Math.max(x1, w.x);
+      y0 = Math.min(y0, w.y); y1 = Math.max(y1, w.y);
+    }
+    // A margin so modules are built just before they scroll in.
+    const mx = Math.min((x1 - x0) * 0.25, 2000) + this.metrics.pitch;
+    const my = Math.min((y1 - y0) * 0.25, 2000) + this.metrics.pitch;
+    x0 -= mx; x1 += mx; y0 -= my; y1 += my;
+    const focused = this.focused.get();
+    const tilted = c.tilt > 0.5;
+    for (const [id, s] of this.shells) {
+      if (id === focused || id === this.returning || s.held.get()) {
+        s.ensureMounted();
+        s.setVisible(true);
+        s.setLod(false);
+        continue;
+      }
+      const x = s.x.value, y = s.y.value, w = s.w.value, h = s.h.value;
+      const vis = x < x1 && x + w > x0 && y < y1 && y + h > y0;
+      s.setVisible(vis);
+      if (!vis) continue;
+      // On-screen height: under tilt, far rows shrink toward the horizon.
+      const ph = tilted ? Math.abs(this.toScreen(x + w / 2, y + h).y - this.toScreen(x + w / 2, y).y) : h * c.zoom;
+      // Hysteresis so a module on the edge doesn't flicker.
+      // Judge by one cell's size on screen, so a 1×1 and a 4×4 simplify at the same zoom.
+      const cellPx = ph / Math.max(1, s.rect.h);
+      const far = s.el.classList.contains('is-lod') ? cellPx < LOD_SHOW : cellPx < LOD_HIDE;
+      s.setLod(far);
+      // Build content the first time it's big enough to see; a far-off speck never pays for it.
+      if (!far) s.ensureMounted();
+    }
   }
 
   private onLayerSwitch() {
@@ -305,6 +377,10 @@ export class Board {
     const m = this.metrics;
     const rows = bottom(this.store.layout());
     const h = Math.max(this.vp.h / Math.max(MIN_ZOOM, this.cam.zoom.target) * 2.5, (rows + 40) * m.pitch);
+    // Only write when something changed: root custom properties restyle the whole tree.
+    const key = `${m.width}|${Math.round(h)}|${m.pitch}|${m.cell}|${m.gap}|${m.margin}`;
+    if (key === this.gridKey) return;
+    this.gridKey = key;
     this.gridEl.style.width = `${m.width}px`;
     this.gridEl.style.height = `${h}px`;
     const s = this.root.style;
@@ -313,6 +389,7 @@ export class Board {
     s.setProperty('--m7-gap', `${m.gap}px`);
     s.setProperty('--m7-margin', `${m.margin}px`);
   }
+  private gridKey = '';
 
   private measure(first: boolean) {
     const w = this.viewport.clientWidth || window.innerWidth;
@@ -430,13 +507,19 @@ export class Board {
     return worldToScreen(wx, wy, this.camera(), this.vp);
   }
 
+  /** Write the camera transform if it changed. Returns true when it did. */
   private applyCamera(force = false) {
     const t = worldTransform(this.camera(), this.vp);
     if (force || t !== this.lastTransform) {
       this.world.style.transform = t;
       this.lastTransform = t;
       this.root.classList.toggle('is-tilted', this.cam.tilt.value > 0.5);
+      // Far away or leaning back: lighter shadows, the costliest thing to paint.
+      this.root.classList.toggle('is-far', this.cam.zoom.value < 0.6 || this.cam.tilt.value > 8);
+      this.cullDirty = true;
+      return true;
     }
+    return false;
   }
 
   /* -------------------------------------------------------------- frame */
@@ -454,7 +537,11 @@ export class Board {
     let moving = false;
     for (const s of Object.values(this.cam)) if (s.step(dt)) moving = true;
     this.applyCamera();
-    for (const s of this.shells.values()) if (s.step(dt)) moving = true;
+    for (const s of this.shells.values()) if (s.step(dt)) moving = this.cullDirty = true;
+    if (this.cullDirty || this.gestures.active) {
+      this.cullDirty = false;
+      this.cull();
+    }
     if (this.returning) {
       const s = this.shells.get(this.returning);
       if (!s || (s.x.settled && s.y.settled && s.w.settled && s.h.settled)) this.finishReturn();

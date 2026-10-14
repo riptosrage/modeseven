@@ -15,9 +15,10 @@ export const clock = defineModule({
       const cls = ctx.size.get().cls;
       const time = cls === 'tile' ? `${p(d.getHours())}:${p(d.getMinutes())}` : `${p(d.getHours())}:${p(d.getMinutes())}<span>:${p(d.getSeconds())}</span>`;
       el.innerHTML = `<div class="clock-time">${time}</div>${cls === 'tile' ? '' : `<div class="clock-date">${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</div>`}`;
-      timer = window.setTimeout(tick, 1000 - d.getMilliseconds());
+      if (ctx.visible.get()) timer = window.setTimeout(tick, 1000 - d.getMilliseconds());
     };
     tick();
+    const offVis = ctx.visible.subscribe((v) => (clearTimeout(timer), v && tick()));
     const off = ctx.size.subscribe(() => {
       clearTimeout(timer);
       tick();
@@ -25,6 +26,7 @@ export const clock = defineModule({
     return () => {
       clearTimeout(timer);
       off();
+      offVis();
     };
   },
 });

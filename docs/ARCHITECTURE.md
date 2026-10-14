@@ -90,6 +90,15 @@ translate(centre) perspective(d) rotateX(tilt) scale(zoom) translate(-camera)
 
 Shells (module frames) own springs for x, y, width, height and lift. During a drag the dragged shell is pinned 1:1 to the finger; everything else glides. On release it takes the finger's velocity into its landing spring.
 
+## Scale: culling and level of detail
+
+Like a game engine, the board only pays for what's on screen. Tested at 1,000 modules (`stress 1000` in ⌘K; an e2e test keeps it honest).
+
+- **Culling.** Every frame anything moves, `Board.cull()` projects the viewport's corners onto the board (tilt included) and hides modules outside it, plus a margin. Hidden modules aren't drawn and their `ctx.visible` is false, so they can stop animating.
+- **Lazy mounting.** A module's content is built the first time it's on screen *and* big enough to see. A 1,000-module board opens with ~50 modules built. Set `keepAlive: true` on a module type that must run while unseen (an audio engine).
+- **Level of detail.** When one grid cell is under ~40 px on screen (zoomed out, or far rows under tilt), modules drop their content and keep only their shape. Below a fingertip it can't be used anyway. Zoomed out or tilted, shadows switch to a cheap unblurred version.
+- **Incremental sync.** A knob turn touches one shell. Layout work only runs when the layout or metrics change, content-only changes (params, props, titles) share the derived-layout cache, and root CSS variables are only written when they change.
+
 ## Gestures
 
 `input/gestures.ts` is one state machine. A touch is undecided until it travels 8 px or the long-press fires (420 ms). Then where it started and the mode decide the gesture:
@@ -112,6 +121,7 @@ Drop targets come from the layout model, not the DOM, with hysteresis so the tar
 - `record`: the saved title and props. `setProps` / `setTitle` write through the store (undoable).
 - `mode` and `held`: pause expensive work while the module is being dragged.
 - `header`: a slot for small buttons.
+- `visible`: false while off screen. Pause drawing until it's true again.
 - `param(key)`: a declared parameter (see Parameters). Mark its control `data-m7-param="key"` for MIDI learn.
 
 Each module renders into its own `.m7-content` box and can style it freely. A module that throws while mounting shows an error instead of taking down the board. Later, AI-generated modules will mount through the same function inside a sandbox.

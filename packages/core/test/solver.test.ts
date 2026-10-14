@@ -125,3 +125,45 @@ describe('sizeClass', () => {
     [4, 3, 'large'],
   ] as const)('%i×%i is %s', (w, h, cls) => expect(sizeClass(w, h)).toBe(cls));
 });
+
+describe('scale', () => {
+  // 1,000 modules packed on 16 columns, like `stress 1000`.
+  const big = () => {
+    const cols = 16;
+    const heights = new Array(cols).fill(0);
+    const layout: Record<string, { x: number; y: number; w: number; h: number }> = {};
+    const sizes = [[1, 1], [2, 2], [2, 1], [4, 2], [2, 4]];
+    for (let i = 0; i < 1000; i++) {
+      const [w, h] = sizes[i % sizes.length];
+      let bx = 0, by = Infinity;
+      for (let x = 0; x <= cols - w; x++) {
+        const y = Math.max(...heights.slice(x, x + w));
+        if (y < by) (by = y), (bx = x);
+      }
+      for (let x = bx; x < bx + w; x++) heights[x] = by + h;
+      layout[`m${i}`] = { x: bx, y: by, w, h };
+    }
+    return { layout, cols };
+  };
+
+  it('a drag preview on a 1,000-module board stays well inside a frame', () => {
+    const { layout, cols } = big();
+    const t = performance.now();
+    for (let i = 0; i < 60; i++) place(layout, 'm500', { x: i % 12, y: 40 + (i % 9), w: 4, h: 4 }, cols);
+    const per = (performance.now() - t) / 60;
+    expect(isValid(place(layout, 'm500', { x: 3, y: 41, w: 4, h: 4 }, cols), cols)).toBe(true);
+    expect(per).toBeLessThan(8); // a 120 Hz frame is 8.3 ms; typical is well under 1 ms
+  });
+
+  it('tidy and reflow 1,000 modules quickly', () => {
+    const { layout, cols } = big();
+    let t = performance.now();
+    const tidied = tidy(layout, cols);
+    expect(performance.now() - t).toBeLessThan(200);
+    expect(isValid(tidied, cols)).toBe(true);
+    t = performance.now();
+    const narrow = reflow(layout, 4);
+    expect(performance.now() - t).toBeLessThan(400);
+    expect(isValid(narrow, 4)).toBe(true);
+  });
+});

@@ -234,3 +234,47 @@ test('leaving Arrange does not replay the add animation', async ({ page }) => {
   );
   expect(faded).toBe(false);
 });
+
+test('1,000 modules: off-screen ones sleep, far ones simplify, frames stay smooth', async ({ page }) => {
+  const t0 = Date.now();
+  await page.evaluate(() => window.engine.run('stress 1000'));
+  await page.waitForTimeout(500);
+  expect(Date.now() - t0).toBeLessThan(5000);
+  const counts = () =>
+    page.evaluate(() => {
+      const mods = [...document.querySelectorAll('.m7-mods > .m7-mod')];
+      return {
+        total: mods.length,
+        drawn: mods.filter((m) => !m.classList.contains('is-culled')).length,
+        full: mods.filter((m) => !m.classList.contains('is-culled') && !m.classList.contains('is-lod')).length,
+        unbuilt: mods.filter((m) => !m.querySelector('.m7-content')!.childElementCount).length,
+      };
+    });
+  const near = await counts();
+  expect(near.total).toBe(1000);
+  expect(near.drawn).toBeLessThan(250); // only what's on screen, plus a margin
+  expect(near.unbuilt).toBeGreaterThan(600); // never seen, never built
+
+  // Zoom right out and pan: most modules become simple shapes.
+  const frames = await page.evaluate(async () => {
+    const b = window.board;
+    const times: number[] = [];
+    let last = performance.now();
+    let on = true;
+    const tick = (t: number) => (times.push(t - last), (last = t), on && requestAnimationFrame(tick));
+    requestAnimationFrame(tick);
+    b.setCamera({ zoom: 0.25 });
+    await new Promise((r) => setTimeout(r, 1200));
+    for (let i = 0; i < 40; i++) {
+      b.panBy(0, -30);
+      await new Promise((r) => setTimeout(r, 16));
+    }
+    on = false;
+    times.sort((a, b) => a - b);
+    return { p50: times[Math.floor(times.length / 2)], n: times.length };
+  });
+  const far = await counts();
+  expect(far.full).toBeLessThan(far.drawn / 2);
+  console.log(`1,000 modules: ${near.drawn} drawn near, ${far.drawn} drawn / ${far.full} full far, median frame ${frames.p50.toFixed(1)} ms`);
+  expect(frames.p50).toBeLessThan(40); // generous: CI machines render in software
+});

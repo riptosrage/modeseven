@@ -56,9 +56,17 @@ export const wave = defineModule({
       g.fillStyle = live;
       g.fillRect(head * w - 1, 0, 2, h);
     };
-    const stop = ctx.board.clock.every(draw);
+    // Animate only while it can be seen; off screen it costs nothing.
+    let stop: (() => void) | null = null;
+    const run = (on: boolean) => {
+      stop?.();
+      stop = on ? ctx.board.clock.every(draw) : null;
+    };
+    run(ctx.visible.get());
+    const offVis = ctx.visible.subscribe(run);
     return () => {
-      stop();
+      stop?.();
+      offVis();
       ro.disconnect();
     };
   },
