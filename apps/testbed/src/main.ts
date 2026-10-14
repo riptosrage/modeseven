@@ -194,6 +194,11 @@ $('#open').onclick = async () => {
   }
 };
 
+/* ---- which build is this ---- */
+declare const __BUILD__: string;
+$('#build').textContent = import.meta.env.DEV ? 'dev' : __BUILD__;
+$('#build').title = 'Build. Changes after every update.';
+
 /* ---- platform ---- */
 if (isTauri) document.documentElement.classList.add('is-tauri');
 keepStorage();

@@ -546,3 +546,12 @@ body.is-demo * {
 .is-tauri .bar .spacer {
   pointer-events: none;
 }
+
+/* Build stamp next to the name: tells you which version you're testing. */
+.brand .build {
+  margin-left: 8px;
+  font: 400 10px/1 var(--m7-mono);
+  color: var(--m7-ink-3);
+  letter-spacing: 0;
+}
+@media (max-width: 520px) { .brand .build { display: none; } }
