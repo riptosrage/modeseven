@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#e3e6ea" />
+    <title>Mode 7</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="bar">
+        <div class="brand"><i></i>Mode 7</div>
+        <div class="group">
+          <button id="arrange" class="pill">Arrange</button>
+          <button id="undo" class="icon" aria-label="Undo" title="Undo (⌘Z)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+          <button id="redo" class="icon" aria-label="Redo" title="Redo (⇧⌘Z)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+          <button id="tidy" class="pill" title="Pack everything upward">Tidy</button>
+        </div>
+        <div class="spacer"></div>
+        <label class="slider" title="Tilt the board (⌥ + scroll, or T)"><span>Tilt</span><input id="tilt" type="range" min="0" max="62" step="1" value="0" /></label>
+        <label class="slider" title="Smallest cell size"><span id="cell-out">cells</span><input id="cell" type="range" min="56" max="140" step="2" value="76" /></label>
+        <button id="zoom" class="readout" title="Reset zoom and tilt (0)">100%</button>
+        <button id="debug" class="icon mono" title="Debug overlay (`)" aria-label="Debug overlay">{ }</button>
+        <button id="theme" class="icon" title="Light / dark" aria-label="Toggle dark mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
+        <button id="reset" class="pill quiet" title="Back to the starter board">Reset</button>
+      </header>
+      <main id="board"></main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

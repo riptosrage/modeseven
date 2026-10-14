@@ -1,0 +1,28 @@
+{
+  "name": "modeseven",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Mode 7: a pegboard for building your own tools out of resizable modules.",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @mode7/testbed",
+    "build": "npm run build -w @mode7/testbed",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "npm run e2e -w @mode7/testbed",
+    "typecheck": "tsc -p packages/core --noEmit && tsc -p apps/testbed --noEmit",
+    "check": "npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.2",
+    "@types/node": "^22.20.5",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.4"
+  }
+}

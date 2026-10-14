@@ -1,0 +1,14 @@
+{
+  "name": "@mode7/core",
+  "version": "0.1.0",
+  "description": "Mode 7 engine: pegboard grid, solver, camera, gestures, modules.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles/index.css"
+  },
+  "sideEffects": ["*.css"]
+}

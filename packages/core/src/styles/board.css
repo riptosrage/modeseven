@@ -1,0 +1,555 @@
+/* Mode 7 board. Everything is positioned by transforms from the frame loop; CSS only styles. */
+
+.m7 {
+  position: relative;
+  overflow: hidden;
+  font-family: var(--m7-font);
+  font-size: var(--m7-text-body);
+  color: var(--m7-ink-1);
+  background: var(--m7-ground);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+.m7 [hidden] {
+  display: none !important;
+}
+.m7 button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+.m7 :focus-visible {
+  outline: 2px solid var(--m7-focus-ring);
+  outline-offset: 2px;
+}
+
+.m7-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  perspective: none;
+}
+.m7-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  transform-style: flat;
+  will-change: transform;
+}
+
+/* The pegboard: a hole at every cell corner. */
+.m7-grid {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background-image: radial-gradient(circle at center, var(--m7-ground-dot) 1.4px, transparent 1.9px);
+  background-size: var(--m7-pitch) var(--m7-pitch);
+  background-position: calc(var(--m7-margin) - var(--m7-gap) / 2 - var(--m7-pitch) / 2) calc(var(--m7-margin) - var(--m7-gap) / 2 - var(--m7-pitch) / 2);
+}
+.m7.is-tilted .m7-grid {
+  /* Fade the far board into the horizon. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 22%);
+}
+
+.m7-mods {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* ---- the + slot on an empty cell ---- */
+.m7-slot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--m7-radius);
+  background: var(--m7-slot);
+  box-shadow: var(--m7-shadow-inset);
+  cursor: pointer;
+  animation: m7-fade var(--m7-fade) ease-out;
+}
+.m7-slot span {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--m7-ink-2);
+  background: var(--m7-wash);
+  pointer-events: none;
+}
+.m7-slot:hover span {
+  background: var(--m7-node);
+  color: var(--m7-node-ink);
+}
+
+.m7-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: var(--m7-radius);
+  background: var(--m7-wash);
+  outline: 1.5px dashed var(--m7-ink-3);
+  outline-offset: -1.5px;
+  pointer-events: none;
+}
+
+/* ---- module shell ---- */
+.m7-mod {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: center;
+  contain: layout style;
+}
+.m7-face {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--m7-radius);
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--m7-surface-1) 0%, var(--m7-surface-2) 55%, var(--m7-surface-3) 100%);
+  box-shadow: inset 0 1px 0 var(--m7-highlight), inset 0 0 0 1px var(--m7-line), var(--m7-shadow-rest);
+  display: flex;
+  flex-direction: column;
+}
+.m7-mod.is-held,
+.m7-mod.is-resizing {
+  z-index: 10;
+}
+.m7-mod.is-held .m7-face {
+  box-shadow: inset 0 1px 0 var(--m7-highlight), inset 0 0 0 1px var(--m7-line), var(--m7-shadow-lift);
+}
+.m7-mod.is-new .m7-face {
+  animation: m7-pop 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes m7-pop {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes m7-fade {
+  from { opacity: 0; }
+}
+
+.m7-head {
+  display: flex;
+  align-items: center;
+  gap: var(--m7-s1);
+  height: var(--m7-head);
+  padding: 0 4px 0 var(--m7-s3);
+  flex: none;
+  cursor: grab;
+  touch-action: none;
+}
+.m7-head:active {
+  cursor: grabbing;
+}
+.m7-title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--m7-text-ui);
+  font-weight: 500;
+  color: var(--m7-ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.m7-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--m7-s1);
+}
+.m7-more {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--m7-ink-3);
+  flex: none;
+}
+.m7-more:hover {
+  background: var(--m7-wash);
+  color: var(--m7-ink-1);
+}
+.m7-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+/* Each module renders into its own box and may style it freely. Container queries work against it. */
+.m7-content {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+}
+
+/* A 1×1 tile has no room for a header: it floats over the content on hover. */
+.m7-mod.is-tile .m7-head {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity var(--m7-fade);
+}
+.m7-mod.is-tile:hover .m7-head,
+.m7.is-arranging .m7-mod.is-tile .m7-head {
+  opacity: 1;
+}
+.m7-mod.is-tile .m7-title {
+  visibility: hidden;
+}
+
+.m7-missing {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--m7-s4);
+  text-align: center;
+  font: var(--m7-text-ui) var(--m7-mono);
+  color: var(--m7-ink-3);
+}
+
+/* ---- resize handles ---- */
+.m7-handle {
+  position: absolute;
+  z-index: 3;
+  touch-action: none;
+  display: none;
+}
+.m7-handle-se {
+  display: block;
+  right: 0;
+  bottom: 0;
+  width: 28px;
+  height: 28px;
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity var(--m7-fade);
+}
+.m7-handle-se::after {
+  content: '';
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid var(--m7-ink-3);
+  border-bottom: 2px solid var(--m7-ink-3);
+  border-bottom-right-radius: 7px;
+}
+.m7-mod:hover .m7-handle-se,
+.m7-mod.is-resizing .m7-handle-se {
+  opacity: 1;
+}
+@media (pointer: coarse) {
+  .m7-handle-se { opacity: 1; }
+}
+.m7.is-arranging .m7-handle {
+  display: block;
+  opacity: 1;
+}
+.m7.is-arranging .m7-handle-n { top: -6px; left: 24px; right: 24px; height: 16px; cursor: ns-resize; }
+.m7.is-arranging .m7-handle-s { bottom: -6px; left: 24px; right: 24px; height: 16px; cursor: ns-resize; }
+.m7.is-arranging .m7-handle-e { right: -6px; top: 24px; bottom: 24px; width: 16px; cursor: ew-resize; }
+.m7.is-arranging .m7-handle-w { left: -6px; top: 24px; bottom: 24px; width: 16px; cursor: ew-resize; }
+.m7.is-arranging .m7-handle-ne { top: -6px; right: -6px; width: 26px; height: 26px; cursor: nesw-resize; }
+.m7.is-arranging .m7-handle-nw { top: -6px; left: -6px; width: 26px; height: 26px; cursor: nwse-resize; }
+.m7.is-arranging .m7-handle-sw { bottom: -6px; left: -6px; width: 26px; height: 26px; cursor: nesw-resize; }
+.m7.is-arranging .m7-handle-n::after,
+.m7.is-arranging .m7-handle-s::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 4px;
+  margin: -2px 0 0 -14px;
+  border-radius: 2px;
+  background: var(--m7-ink-3);
+}
+.m7.is-arranging .m7-handle-e::after,
+.m7.is-arranging .m7-handle-w::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 28px;
+  margin: -14px 0 0 -2px;
+  border-radius: 2px;
+  background: var(--m7-ink-3);
+}
+.m7.is-arranging .m7-face { overflow: visible; }
+.m7.is-arranging .m7-body { overflow: hidden; border-radius: 0 0 var(--m7-radius) var(--m7-radius); }
+
+/* ---- Arrange mode: iOS-style wobble, remove badge, content inert ---- */
+.m7.is-arranging .m7-content {
+  pointer-events: none;
+}
+.m7.is-arranging .m7-mod:not(.is-held):not(.is-resizing) .m7-face {
+  animation: m7-wobble 0.32s ease-in-out infinite alternate;
+}
+.m7.is-arranging .m7-mod:nth-child(2n) .m7-face { animation-delay: -0.16s; }
+.m7.is-arranging .m7-mod:nth-child(3n) .m7-face { animation-duration: 0.36s; }
+@keyframes m7-wobble {
+  from { transform: rotate(-0.45deg); }
+  to { transform: rotate(0.45deg); }
+}
+.m7-remove {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: none;
+  place-items: center;
+  z-index: 4;
+  background: var(--m7-surface-1);
+  color: var(--m7-ink-1);
+  box-shadow: 0 0 0 1px var(--m7-line), 0 4px 10px -4px rgba(16, 24, 40, 0.4);
+}
+.m7.is-arranging .m7-remove { display: grid; }
+.m7.is-arranging .m7-mod.is-held .m7-remove { display: none; }
+
+.m7.is-keyboard .m7-mod.is-selected .m7-face {
+  box-shadow: inset 0 1px 0 var(--m7-highlight), 0 0 0 2px var(--m7-focus-ring), var(--m7-shadow-rest);
+}
+
+/* ---- focus (full screen) ---- */
+.m7-focus-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+.m7-focus-layer > .m7-mod {
+  pointer-events: auto;
+}
+.m7-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 39;
+  background: var(--m7-veil);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: m7-fade 0.16s ease-out;
+}
+.m7-mod.is-focused .m7-handle,
+.m7-mod.is-focused .m7-remove {
+  display: none !important;
+}
+
+/* ---- overlays (screen space) ---- */
+.m7-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+}
+.m7-overlay > * {
+  pointer-events: auto;
+}
+.m7-badge {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none !important;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--m7-node);
+  color: var(--m7-node-ink);
+  font: 500 var(--m7-text-ui) var(--m7-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.m7-radial {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  touch-action: none;
+}
+.m7-radial-core {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  background: var(--m7-node);
+  opacity: 0.12;
+}
+.m7-radial-node {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--m7-node);
+  color: var(--m7-node-ink);
+  transform: scale(0.3);
+  opacity: 0;
+  transition: transform 0.08s ease-out, opacity 0.06s;
+  box-shadow: 0 8px 16px -8px rgba(0, 0, 0, 0.6);
+}
+.m7-radial-node.is-kid {
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+}
+.m7-radial-node.is-in { transform: scale(1); opacity: 1; }
+.m7-radial-node.is-hot { transform: scale(1.18); }
+.m7-radial-node.has-kids::after {
+  content: '';
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+.m7-radial-label {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  margin-top: -30px;
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: var(--m7-surface-1);
+  color: var(--m7-ink-1);
+  font: 500 var(--m7-text-label) var(--m7-mono);
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 12px -4px rgba(16, 24, 40, 0.3);
+}
+
+.m7-menu {
+  position: fixed;
+  z-index: 65;
+  min-width: 172px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  background: var(--m7-surface-1);
+  color: var(--m7-ink-1);
+  font-family: var(--m7-font);
+  box-shadow: inset 0 0 0 1px var(--m7-line), 0 16px 32px -14px rgba(16, 24, 40, 0.4);
+  animation: m7-fade var(--m7-fade) ease-out;
+}
+.m7-menu button {
+  text-align: left;
+  font-size: var(--m7-text-ui);
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+.m7-menu button:hover,
+.m7-menu button:focus-visible {
+  background: var(--m7-wash);
+  outline: none;
+}
+.m7-menu button.is-danger { color: var(--m7-live); }
+
+.m7-toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--m7-s3);
+  padding: 8px 8px 8px 14px;
+  border-radius: 12px;
+  background: var(--m7-node);
+  color: var(--m7-node-ink);
+  font-size: var(--m7-text-ui);
+  white-space: nowrap;
+  animation: m7-fade 0.12s ease-out;
+}
+.m7-toast[hidden] { display: none; }
+.m7-toast button {
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* ---- layer dock ---- */
+.m7-dock {
+  position: absolute;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  max-width: calc(100% - 32px);
+  overflow-x: auto;
+  border-radius: 999px;
+  background: var(--m7-surface-2);
+  box-shadow: inset 0 1px 0 var(--m7-highlight), inset 0 0 0 1px var(--m7-line), 0 10px 24px -12px rgba(16, 24, 40, 0.35);
+}
+.m7-dock button {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: var(--m7-text-ui);
+  color: var(--m7-ink-2);
+  white-space: nowrap;
+}
+.m7-dock button:hover { background: var(--m7-wash); }
+.m7-dock button.is-on { background: var(--m7-node); color: var(--m7-node-ink); }
+.m7-dock .m7-done { background: var(--m7-live); color: var(--m7-live-ink); font-weight: 600; }
+.m7-dock .m7-done:hover { background: var(--m7-live); }
+.m7-num {
+  font-family: var(--m7-mono);
+  opacity: 0.55;
+  margin-right: 5px;
+}
+
+/* ---- debug ---- */
+.m7.m7-debug .m7-grid {
+  background-image:
+    linear-gradient(to right, transparent calc(var(--m7-cell)), rgba(44, 107, 237, 0.08) 0),
+    linear-gradient(to bottom, transparent calc(var(--m7-cell)), rgba(44, 107, 237, 0.08) 0),
+    radial-gradient(circle at center, var(--m7-ground-dot) 1.4px, transparent 1.9px);
+  background-size: var(--m7-pitch) var(--m7-pitch);
+  background-position: var(--m7-margin) var(--m7-margin), var(--m7-margin) var(--m7-margin),
+    calc(var(--m7-margin) - var(--m7-gap) / 2 - var(--m7-pitch) / 2) calc(var(--m7-margin) - var(--m7-gap) / 2 - var(--m7-pitch) / 2);
+}
+.m7.m7-debug [data-m7-zone='head'] { outline: 1px dashed rgba(44, 107, 237, 0.7); outline-offset: -1px; }
+.m7.m7-debug [data-m7-zone='resize'] { background: rgba(226, 55, 44, 0.18); display: block; }
+.m7-debug-panel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(17, 19, 22, 0.86);
+  color: #e8ebef;
+  font: 11px/1.5 var(--m7-mono);
+  pointer-events: none !important;
+  white-space: pre;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m7.is-arranging .m7-mod .m7-face { animation: none !important; }
+  .m7-mod.is-new .m7-face { animation: none; }
+}

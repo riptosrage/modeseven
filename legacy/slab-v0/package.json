@@ -1,0 +1,18 @@
+{
+  "name": "slab",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A modular, tap-first surface for building tools out of resizable modules.",
+  "license": "MIT",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev": "npm run dev -w @slab/daw",
+    "build": "npm run build -w @slab/daw",
+    "preview": "npm run preview -w @slab/daw",
+    "typecheck": "tsc -p apps/daw --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}

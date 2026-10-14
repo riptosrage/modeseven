@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#e3e6ea" />
+    <title>Slab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="bar">
+        <div class="brand"><i></i>slab</div>
+        <div class="crumb">beat-tape / <b id="layer-name">Session</b></div>
+        <div class="hint">hold + to add · drag a corner to resize · drag a header to move · double-tap a header to focus · ⌃scroll to zoom · [ ] layers · space play · R record</div>
+        <div class="tools">
+          <button id="theme" class="tool" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
+          <button id="reset" class="tool" title="Reset layout">Reset</button>
+          <div class="zoom">
+            <button id="zoom-out" aria-label="Zoom out"></button>
+            <span id="zoom-label">100%</span>
+            <button id="zoom-in" aria-label="Zoom in"></button>
+          </div>
+        </div>
+      </header>
+      <main id="surface"></main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

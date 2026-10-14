@@ -1,0 +1,86 @@
+/*
+  Mode 7 design tokens.
+  Colour by role, not hue. A theme (dark, or a 1977 cockpit) redefines these
+  values and keeps the names. Nothing in the engine uses a literal colour.
+*/
+:root {
+  /* ground and plastic */
+  --m7-ground: #e3e6ea;
+  --m7-ground-dot: #c9ced6;
+  --m7-slot: #d8dce1;
+  --m7-surface-1: #ffffff;
+  --m7-surface-2: #f8f9fa;
+  --m7-surface-3: #eceef1;
+  --m7-highlight: rgba(255, 255, 255, 0.95);
+
+  /* ink */
+  --m7-ink-1: #14181e;
+  --m7-ink-2: #58606b;
+  --m7-ink-3: #979fa9;
+  --m7-line: rgba(18, 26, 38, 0.09);
+  --m7-wash: rgba(18, 26, 38, 0.05);
+  --m7-wash-2: rgba(18, 26, 38, 0.09);
+
+  /* signal */
+  --m7-live: #e2372c;
+  --m7-live-ink: #ffffff;
+  --m7-node: #111316;
+  --m7-node-ink: #ffffff;
+  --m7-focus-ring: #2c6bed;
+  --m7-veil: rgba(227, 230, 234, 0.72);
+
+  /* heights: pressed in, resting, lifted */
+  --m7-shadow-rest: 0 1px 1px rgba(16, 24, 40, 0.05), 0 12px 26px -16px rgba(16, 24, 40, 0.32);
+  --m7-shadow-lift: 0 2px 4px rgba(16, 24, 40, 0.06), 0 30px 50px -20px rgba(16, 24, 40, 0.45);
+  --m7-shadow-inset: inset 0 1px 2px rgba(16, 24, 40, 0.07);
+
+  /* type: one family, two voices. Sans for words, mono for numbers and names of things. */
+  --m7-font: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --m7-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --m7-text-label: 11px;
+  --m7-text-ui: 12px;
+  --m7-text-body: 14px;
+  --m7-text-title: 18px;
+  --m7-text-readout: 28px;
+
+  /* space on a 4 px base */
+  --m7-s1: 4px;
+  --m7-s2: 8px;
+  --m7-s3: 12px;
+  --m7-s4: 16px;
+  --m7-s5: 24px;
+  --m7-s6: 32px;
+
+  /* radius by nesting: inner = outer − inset */
+  --m7-radius: 18px;
+  --m7-radius-inner: 10px;
+  --m7-head: 30px;
+
+  --m7-fade: 80ms;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --m7-ground: #14161a;
+  --m7-ground-dot: #2a2e35;
+  --m7-slot: #1b1d22;
+  --m7-surface-1: #2b2f36;
+  --m7-surface-2: #24272d;
+  --m7-surface-3: #1e2126;
+  --m7-highlight: rgba(255, 255, 255, 0.06);
+  --m7-ink-1: #eef0f3;
+  --m7-ink-2: #a3aab4;
+  --m7-ink-3: #6c737d;
+  --m7-line: rgba(255, 255, 255, 0.07);
+  --m7-wash: rgba(255, 255, 255, 0.05);
+  --m7-wash-2: rgba(255, 255, 255, 0.1);
+  --m7-live: #ff4a3d;
+  --m7-node: #eef0f3;
+  --m7-node-ink: #111316;
+  --m7-focus-ring: #6b9bff;
+  --m7-veil: rgba(10, 11, 13, 0.72);
+  --m7-shadow-rest: 0 1px 1px rgba(0, 0, 0, 0.3), 0 12px 26px -16px rgba(0, 0, 0, 0.7);
+  --m7-shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.3), 0 30px 50px -20px rgba(0, 0, 0, 0.85);
+  --m7-shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}

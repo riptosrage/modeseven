@@ -1,0 +1,15 @@
+{
+  "name": "@mode7/testbed",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@mode7/core": "*"
+  }
+}

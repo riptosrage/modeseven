@@ -1,0 +1,423 @@
+/*
+  Slab engine styles.
+  Material: matte white plastic shells on a cool grey ground. One live accent.
+  Every color is a token. Dark mode is a token swap: set data-theme="dark" on <html>.
+*/
+:root {
+  --slab-ground: #e3e6ea;
+  --slab-ground-dot: #cdd2d9;
+  --slab-shell-hi: #ffffff;
+  --slab-shell: #f8f9fa;
+  --slab-shell-lo: #eceef1;
+  --slab-slot: #d8dce1;
+  --slab-ink: #14181e;
+  --slab-ink-2: #58606b;
+  --slab-ink-3: #979fa9;
+  --slab-line: rgba(18, 26, 38, 0.09);
+  --slab-wash: rgba(18, 26, 38, 0.05);
+  --slab-wash-2: rgba(18, 26, 38, 0.09);
+  --slab-live: #e2372c;
+  --slab-node: #111316;
+  --slab-node-fg: #ffffff;
+  --slab-veil: rgba(227, 230, 234, 0.7);
+  --slab-shadow: 0 1px 1px rgba(16, 24, 40, 0.05), 0 12px 26px -16px rgba(16, 24, 40, 0.32);
+  --slab-shadow-lift: 0 30px 50px -20px rgba(16, 24, 40, 0.45);
+  --slab-highlight: rgba(255, 255, 255, 0.95);
+
+  --slab-font: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --slab-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --slab-radius: 18px;
+  --slab-snap: 0.11s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+:root[data-theme='dark'] {
+  --slab-ground: #15171b;
+  --slab-ground-dot: #23262c;
+  --slab-shell-hi: #2a2e35;
+  --slab-shell: #24272d;
+  --slab-shell-lo: #1e2126;
+  --slab-slot: #1b1d22;
+  --slab-ink: #eef0f3;
+  --slab-ink-2: #a3aab4;
+  --slab-ink-3: #6c737d;
+  --slab-line: rgba(255, 255, 255, 0.07);
+  --slab-wash: rgba(255, 255, 255, 0.05);
+  --slab-wash-2: rgba(255, 255, 255, 0.1);
+  --slab-live: #ff4a3d;
+  --slab-node: #eef0f3;
+  --slab-node-fg: #111316;
+  --slab-veil: rgba(10, 11, 13, 0.7);
+  --slab-shadow: 0 1px 1px rgba(0, 0, 0, 0.3), 0 12px 26px -16px rgba(0, 0, 0, 0.7);
+  --slab-shadow-lift: 0 30px 50px -20px rgba(0, 0, 0, 0.8);
+  --slab-highlight: rgba(255, 255, 255, 0.06);
+  color-scheme: dark;
+}
+
+.slab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  font-family: var(--slab-font);
+  color: var(--slab-ink);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.slab button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+.slab :focus-visible {
+  outline: 2px solid var(--slab-ink);
+  outline-offset: 2px;
+}
+
+.slab-canvas {
+  flex: 1;
+  position: relative;
+  overflow: auto;
+  min-height: 0;
+  padding-inline: 16px;
+  background-image: radial-gradient(var(--slab-ground-dot) 1px, transparent 1.3px);
+  background-size: 22px 22px;
+  background-attachment: local;
+}
+.slab-grid {
+  position: relative;
+  margin: 0 auto;
+}
+
+/* ---- module shell ---- */
+.slab-mod {
+  position: absolute;
+  border-radius: var(--slab-radius);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--slab-shell-hi) 0%, var(--slab-shell) 55%, var(--slab-shell-lo) 100%);
+  box-shadow: inset 0 1px 0 var(--slab-highlight), inset 0 0 0 1px var(--slab-line), var(--slab-shadow);
+  transition: left var(--slab-snap), top var(--slab-snap), width var(--slab-snap), height var(--slab-snap);
+}
+.slab.is-instant .slab-mod,
+.slab-mod.is-editing {
+  transition: none;
+}
+.slab-mod.is-editing {
+  z-index: 5;
+}
+.slab-mod.is-pop {
+  animation: slab-pop 0.14s ease-out;
+}
+@keyframes slab-pop {
+  from { transform: scale(0.965); }
+  to { transform: none; }
+}
+
+.slab-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 6px 0 14px;
+  flex: none;
+  cursor: grab;
+  touch-action: none;
+}
+.slab-head:active { cursor: grabbing; }
+.slab-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--slab-ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.slab-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.slab-hb {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--slab-ink-3);
+  flex: none;
+}
+.slab-hb:hover {
+  background: var(--slab-wash);
+  color: var(--slab-ink);
+}
+.slab-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  container-type: size;
+}
+.slab-missing {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  text-align: center;
+  font: 400 12px var(--slab-mono);
+  color: var(--slab-ink-3);
+}
+
+.slab-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 30px;
+  height: 30px;
+  cursor: nwse-resize;
+  touch-action: none;
+  opacity: 0;
+  z-index: 3;
+}
+.slab-handle::after {
+  content: '';
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 11px;
+  height: 11px;
+  border-right: 2px solid var(--slab-ink-3);
+  border-bottom: 2px solid var(--slab-ink-3);
+  border-bottom-right-radius: 7px;
+}
+.slab-mod:hover .slab-handle,
+.slab-mod.is-editing .slab-handle { opacity: 1; }
+.slab-handle:hover::after,
+.is-editing .slab-handle::after { border-color: var(--slab-ink); }
+@media (pointer: coarse) {
+  .slab-handle { opacity: 1; }
+}
+.slab-badge {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--slab-node);
+  color: var(--slab-node-fg);
+  font: 500 12px var(--slab-mono);
+  font-variant-numeric: tabular-nums;
+  padding: 5px 9px;
+  border-radius: 999px;
+  z-index: 4;
+  pointer-events: none;
+}
+.slab-ghost {
+  position: absolute;
+  border-radius: var(--slab-radius);
+  outline: 1.5px dashed var(--slab-ink);
+  outline-offset: -1px;
+  pointer-events: none;
+  z-index: 6;
+}
+
+/* ---- empty slot ---- */
+.slab-mod.is-empty {
+  background: var(--slab-slot);
+  box-shadow: inset 0 1px 2px rgba(16, 24, 40, 0.07), inset 0 0 0 1px var(--slab-line);
+}
+.slab-plus {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  touch-action: none;
+}
+.slab-plus span {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--slab-ink-3);
+  background: var(--slab-wash);
+}
+.slab-mod.is-empty:hover .slab-plus span {
+  color: var(--slab-ink);
+  background: var(--slab-shell-hi);
+}
+.slab-mod.is-armed .slab-plus span {
+  background: var(--slab-node);
+  color: var(--slab-node-fg);
+}
+
+/* ---- drag ---- */
+.slab-mod.is-placeholder {
+  background: transparent;
+  box-shadow: none;
+  outline: 1.5px dashed var(--slab-ink-3);
+  outline-offset: -2px;
+}
+.slab-mod.is-placeholder > * { visibility: hidden; }
+.slab-mod.is-floating {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  transition: none;
+  transform: scale(1.025);
+  box-shadow: inset 0 1px 0 var(--slab-highlight), inset 0 0 0 1px var(--slab-line), var(--slab-shadow-lift);
+}
+
+/* ---- full screen ---- */
+.slab-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 39;
+  background: var(--slab-veil);
+}
+.slab-mod.is-full {
+  position: fixed;
+  left: var(--full-l) !important;
+  top: var(--full-t) !important;
+  width: var(--full-w) !important;
+  height: var(--full-h) !important;
+  z-index: 40;
+  transition: none;
+}
+.slab-mod.is-full .slab-handle { display: none; }
+
+/* ---- radial ---- */
+.slab-radial {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  font-family: var(--slab-font);
+  touch-action: none;
+}
+.slab-radial-core {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  background: var(--slab-node);
+  opacity: 0.1;
+}
+.slab-radial-node {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background: var(--slab-node);
+  color: var(--slab-node-fg);
+  display: grid;
+  place-items: center;
+  transform: scale(0.3);
+  opacity: 0;
+  transition: transform 0.08s ease-out, opacity 0.06s;
+  box-shadow: 0 8px 16px -8px rgba(0, 0, 0, 0.6);
+}
+.slab-radial-node.is-kid {
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+}
+.slab-radial-node.is-in { transform: scale(1); opacity: 1; }
+.slab-radial-node.is-hot { transform: scale(1.18); }
+.slab-radial-node.has-kids::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+  right: 6px;
+  top: 6px;
+}
+.slab-radial-label {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  margin-top: -30px;
+  background: var(--slab-shell-hi);
+  color: var(--slab-ink);
+  font: 500 11px var(--slab-mono);
+  padding: 4px 8px;
+  border-radius: 7px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px -4px rgba(16, 24, 40, 0.3);
+  pointer-events: none;
+}
+
+/* ---- module menu ---- */
+.slab-menu {
+  position: fixed;
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--slab-shell-hi);
+  color: var(--slab-ink);
+  font-family: var(--slab-font);
+  box-shadow: inset 0 0 0 1px var(--slab-line), 0 16px 32px -14px rgba(16, 24, 40, 0.4);
+}
+.slab-menu button {
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  text-align: left;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+.slab-menu button:hover { background: var(--slab-wash); }
+.slab-menu button.is-danger { color: var(--slab-live); }
+
+/* ---- layer dock ---- */
+.slab-dock {
+  position: absolute;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  max-width: calc(100% - 32px);
+  overflow-x: auto;
+  background: var(--slab-shell);
+  box-shadow: inset 0 1px 0 var(--slab-highlight), inset 0 0 0 1px var(--slab-line), 0 10px 24px -12px rgba(16, 24, 40, 0.35);
+}
+.slab-dock button {
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--slab-ink-2);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+.slab-dock button:hover { background: var(--slab-wash); }
+.slab-dock button.is-on { background: var(--slab-node); color: var(--slab-node-fg); }
+.slab-num {
+  font-family: var(--slab-mono);
+  opacity: 0.55;
+  margin-right: 5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slab-mod, .slab-radial-node { transition: none; }
+  .slab-mod.is-pop { animation: none; }
+}
