@@ -15,6 +15,8 @@ npm run dev
 
 Open the URL it prints. The Network URL works on an iPad or phone on the same Wi-Fi.
 
+**Demo:** hit **Demo** in the toolbar for a 10-second tour (Esc stops it, your own board comes back after). Open the page with `#demo` on the end of the URL to start it automatically, handy for screen recordings.
+
 ```sh
 npm test             # solver, store, camera unit tests (Vitest)
 npm run e2e          # gesture tests in a real browser (Playwright)

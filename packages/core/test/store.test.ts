@@ -77,4 +77,17 @@ describe('store', () => {
     s.dispatch({ t: 'remove', id: 'a' });
     expect(Object.values(s.layer.layouts).every((l) => !l.a)).toBe(true);
   });
+
+  it('snapshot and restore bring back doc and history', () => {
+    const s = new Store({ doc: emptyDoc() });
+    s.cols.set(8);
+    s.dispatch(add('a'));
+    const snap = s.snapshot();
+    s.restore({ doc: emptyDoc('Demo'), past: [], future: [] });
+    expect(Object.keys(s.layer.modules)).toEqual([]);
+    expect(s.history.get().canUndo).toBe(false);
+    s.restore(snap);
+    expect(Object.keys(s.layer.modules)).toEqual(['a']);
+    expect(s.history.get().canUndo).toBe(true);
+  });
 });

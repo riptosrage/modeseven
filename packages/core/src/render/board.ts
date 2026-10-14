@@ -30,7 +30,7 @@ export interface BoardOptions {
 
 export const MIN_ZOOM = 0.25;
 export const MAX_ZOOM = 2.5;
-export const MAX_TILT = 62;
+export const MAX_TILT = 72;
 
 let seq = 0;
 export const newId = (prefix = 'm') => `${prefix}${Date.now().toString(36)}${(seq++).toString(36)}`;
@@ -71,6 +71,8 @@ export class Board {
 
   metrics!: Metrics;
   vp: Viewport = { w: 0, h: 0 };
+  /** Perspective strength for tilt, as a multiple of the viewport's longer side. Lower = more dramatic. */
+  private perspective = 1.1;
   readonly shells = new Map<string, Shell>();
   private defs = new Map<string, ModuleDef>();
   private lastTransform = '';
@@ -160,7 +162,14 @@ export class Board {
     const id = newId();
     this.store.dispatch({ t: 'add', id, type, size: { w, h }, rect, ...extra });
     this.selected.set(id);
-    requestAnimationFrame(() => this.shells.get(id)?.el.classList.add('is-new'));
+    requestAnimationFrame(() => {
+      const el = this.shells.get(id)?.el;
+      if (!el) return;
+      el.classList.add('is-new');
+      // Drop the class once played, or leaving Arrange (which swaps animations) replays it.
+      el.addEventListener('animationend', (e) => e.animationName === 'm7-pop' && el.classList.remove('is-new'));
+      setTimeout(() => el.classList.remove('is-new'), 400);
+    });
     return id;
   }
 
@@ -274,7 +283,7 @@ export class Board {
     const w = this.viewport.clientWidth || window.innerWidth;
     const h = this.viewport.clientHeight || window.innerHeight;
     const prevW = this.metrics?.width;
-    this.vp = { w, h };
+    this.vp = { w, h, d: Math.max(w, h) * this.perspective };
     this.metrics = computeMetrics(w, this.metricsOptions.get());
     if (first || prevW !== this.metrics.width) {
       // Keep the board's top-left where it was relative to the screen.
@@ -345,6 +354,14 @@ export class Board {
       else hi = mid;
     }
     this.setCamera({ tilt: t, y: (lo + hi) / 2 }, instant);
+  }
+
+  /** How strong the tilt perspective is: a multiple of the viewport's longer side (default 1.1; lower is more dramatic). */
+  setPerspective(factor: number) {
+    this.perspective = clamp(factor, 0.4, 4);
+    this.vp = { ...this.vp, d: Math.max(this.vp.w, this.vp.h) * this.perspective };
+    this.applyCamera(true);
+    this.kick();
   }
 
   zoomAt(clientX: number, clientY: number, zoom: number, instant = true) {

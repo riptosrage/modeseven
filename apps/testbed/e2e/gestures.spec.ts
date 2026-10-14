@@ -169,3 +169,16 @@ test('the layout never overlaps after a burst of gestures', async ({ page }) => 
   }
   expect(noOverlaps(await layout(page))).toBe(true);
 });
+
+test('leaving Arrange does not replay the add animation', async ({ page }) => {
+  await page.evaluate(() => window.board.add('blank', { x: 0, y: 8, w: 2, h: 2 }));
+  await page.waitForTimeout(500);
+  await page.evaluate(() => window.board.setMode('arrange'));
+  await page.waitForTimeout(200);
+  await page.evaluate(() => window.board.setMode('use'));
+  await page.waitForTimeout(30);
+  const faded = await page.evaluate(() =>
+    [...document.querySelectorAll('.m7-mod .m7-face')].some((f) => Number(getComputedStyle(f).opacity) < 0.95),
+  );
+  expect(faded).toBe(false);
+});

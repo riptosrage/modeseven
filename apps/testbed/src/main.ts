@@ -4,6 +4,10 @@ import { Board, Store, svg, type Doc, type Layout } from '@mode7/core';
 import { blank } from './modules/blank';
 import { note } from './modules/note';
 import { knob } from './modules/knob';
+import { wave } from './modules/wave';
+import { clock } from './modules/clock';
+import { xy } from './modules/xy';
+import { Demo } from './demo';
 
 /* ---- starter board: a few blanks at 12 columns; other widths derive from it ---- */
 const mods: [string, string, [number, number, number, number], Record<string, unknown>?][] = [
@@ -39,7 +43,7 @@ const icon = {
 const board = new Board({
   root: document.getElementById('board')!,
   store,
-  modules: [blank, note, knob],
+  modules: [blank, note, knob, wave, clock, xy],
   addMenu: [
     {
       key: 'blanks',
@@ -52,8 +56,18 @@ const board = new Board({
         { key: 'blank:4x4', label: 'Large 4×4', icon: icon.large },
       ],
     },
+    {
+      key: 'tools',
+      label: 'Tools',
+      icon: wave.icon!,
+      children: [
+        { key: 'wave', label: 'Waveform', icon: wave.icon! },
+        { key: 'xy', label: 'XY pad', icon: xy.icon! },
+        { key: 'knob', label: 'Knob', icon: knob.icon! },
+      ],
+    },
+    { key: 'clock', label: 'Clock', icon: clock.icon! },
     { key: 'note', label: 'Note', icon: note.icon! },
-    { key: 'knob', label: 'Knob', icon: knob.icon! },
     { key: 'ai', label: 'Ask AI (soon)', icon: svg('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>') },
   ],
   onAdd(key, at, b) {
@@ -134,4 +148,17 @@ try {
   /* ignore */
 }
 
-Object.assign(window, { board, store });
+/* ---- demo ---- */
+const demoBtn = $('#demo');
+const demo = new Demo(board, store, {
+  onChange(state) {
+    demoBtn.textContent = state === 'idle' ? 'Demo' : state === 'running' ? 'Stop' : 'Exit demo';
+    demoBtn.classList.toggle('is-on', state !== 'idle');
+    if (state === 'showing') board.overlays.toast('Demo board. Your own board is safe.', { label: 'Back to mine', run: () => demo.exit() });
+  },
+});
+demoBtn.onclick = () => (demo.running || demo.showing ? demo.exit() : demo.play());
+// Open with #demo in the URL to start it automatically (handy for screen recordings).
+if (location.hash === '#demo') setTimeout(() => demo.play(), 900);
+
+Object.assign(window, { board, store, demo });

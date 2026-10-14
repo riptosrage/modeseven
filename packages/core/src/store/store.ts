@@ -14,6 +14,12 @@ export interface Transaction {
   readonly open: boolean;
 }
 
+export interface StoreSnapshot {
+  doc: Doc;
+  past: Doc[];
+  future: Doc[];
+}
+
 export interface StoreOptions {
   doc?: Doc;
   /** localStorage key. Omit for no persistence. */
@@ -118,6 +124,28 @@ export class Store {
     this.doc.set(valid);
   }
 
+  /** Everything needed to put the store back exactly: doc and undo history. */
+  snapshot(): StoreSnapshot {
+    if (this.txn) this.cancelTxn();
+    return { doc: this.doc.get(), past: [...this.past], future: [...this.future] };
+  }
+
+  /** Put back a snapshot (used by demos and previews). Not itself undoable. */
+  restore(s: StoreSnapshot) {
+    if (this.txn) this.cancelTxn();
+    this.past = [...s.past];
+    this.future = [...s.future];
+    this.doc.set(s.doc);
+    this.syncHistory();
+  }
+
+  /** Stop writing to localStorage (e.g. while a demo borrows the board). */
+  pauseSaving(paused: boolean) {
+    this.savingPaused = paused;
+    if (paused) clearTimeout(this.saveTimer);
+  }
+  private savingPaused = false;
+
   toJSON(): Doc {
     return this.doc.get();
   }
@@ -158,7 +186,7 @@ export class Store {
   }
 
   private scheduleSave() {
-    if (!this.opts.storageKey || this.txn) return;
+    if (!this.opts.storageKey || this.txn || this.savingPaused) return;
     clearTimeout(this.saveTimer);
     this.saveTimer = window.setTimeout(() => {
       try {

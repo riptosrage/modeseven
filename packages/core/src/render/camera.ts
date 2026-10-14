@@ -17,10 +17,12 @@ export interface CameraState {
 export interface Viewport {
   w: number;
   h: number;
+  /** Perspective distance in px. Smaller = more dramatic tilt. Default 1.1 × the longer side. */
+  d?: number;
 }
 
 /** CSS perspective distance. Smaller = more dramatic. */
-export const perspectiveFor = (vp: Viewport) => Math.max(vp.w, vp.h) * 1.1;
+export const perspectiveFor = (vp: Viewport) => vp.d ?? Math.max(vp.w, vp.h) * 1.1;
 
 /** CSS transform for the world element (transform-origin 0 0, placed at the viewport's top-left). */
 export function worldTransform(c: CameraState, vp: Viewport): string {
