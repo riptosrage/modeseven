@@ -1,0 +1,15 @@
+{
+  "name": "@mode7/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mode 7 as a native Mac app (Tauri). Bundles the testbed build.",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:mac": "tauri build --target universal-apple-darwin"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0"
+  }
+}

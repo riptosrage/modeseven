@@ -537,3 +537,12 @@ body.is-demo * {
 @media (max-width: 600px) {
   .demo-btn { display: none; }
 }
+
+/* Mac app: the window's traffic lights sit over the toolbar's left edge. */
+.is-tauri .bar {
+  padding-left: 84px;
+}
+.is-tauri .bar .brand,
+.is-tauri .bar .spacer {
+  pointer-events: none;
+}

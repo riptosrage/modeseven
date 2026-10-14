@@ -101,10 +101,10 @@ test('a control inside a module keeps its own drag in Use mode', async ({ page }
   expect(await page.evaluate(() => window.store.layer.modules.d.props.value)).toBeGreaterThan(0.5);
 });
 
-test('long-press enters Arrange and keeps dragging', async ({ page }) => {
-  const m = await box(page, '.m7-mod[data-id="c"]');
+test('long-press on a header enters Arrange and keeps dragging', async ({ page }) => {
+  const m = await box(page, '.m7-mod[data-id="b"] .m7-title');
   const t = await cell(page, 10, 5);
-  await page.mouse.move(m.x + m.width / 2, m.y + m.height / 2);
+  await page.mouse.move(m.x + 10, m.y + 6);
   await page.mouse.down();
   await page.waitForTimeout(500);
   expect(await mode(page)).toBe('arrange');
@@ -112,7 +112,16 @@ test('long-press enters Arrange and keeps dragging', async ({ page }) => {
   await page.waitForTimeout(140);
   await page.mouse.up();
   await page.waitForTimeout(300);
-  expect((await layout(page)).c).toEqual({ x: 10, y: 5, w: 1, h: 1 });
+  expect((await layout(page)).b).toEqual({ x: 10, y: 5, w: 2, h: 2 });
+});
+
+test('long-press on a module body does not enter Arrange', async ({ page }) => {
+  const m = await box(page, '.m7-mod[data-id="e"] .m7-body');
+  await page.mouse.move(m.x + m.width / 2, m.y + m.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(600);
+  await page.mouse.up();
+  expect(await mode(page)).toBe('use');
 });
 
 test('in Arrange, drawing on empty cells adds a module that size', async ({ page }) => {

@@ -187,7 +187,8 @@ export class Demo {
     // 5. Long-press for Arrange mode, then tap out.
     const noteEl = b.shells.get(ids[7])?.el.getBoundingClientRect();
     if (noteEl) {
-      await this.moveTo(noteEl.left + noteEl.width / 2, noteEl.top + noteEl.height * 0.62, 280);
+      const hp = this.headPoint(ids[7]);
+      await this.moveTo(hp.x + 20, hp.y, 280);
       this.down();
       await this.wait(470);
       this.up();

@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="theme-color" content="#e3e6ea" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Mode 7" />
+    <link rel="icon" href="/favicon-64.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>Mode 7</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div class="app">
-      <header class="bar">
+      <header class="bar" data-tauri-drag-region>
         <div class="brand"><i></i>Mode 7</div>
         <button id="demo" class="pill demo-btn" title="Play a 10-second tour (Esc to stop)">Demo</button>
         <div class="group">
@@ -27,6 +28,8 @@
         <button id="zoom" class="readout" title="Reset zoom and tilt (0)">100%</button>
         <button id="debug" class="icon mono" title="Debug overlay (`)" aria-label="Debug overlay">{ }</button>
         <button id="theme" class="icon" title="Light / dark" aria-label="Toggle dark mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
+        <button id="open" class="icon" title="Open a project file" aria-label="Open project"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></button>
+        <button id="save" class="icon" title="Save the project to a file" aria-label="Save project"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>
         <button id="reset" class="pill quiet" title="Back to the starter board">Reset</button>
       </header>
       <main id="board"></main>

@@ -4,9 +4,15 @@
 
 A pegboard for building your own tools. Mode 7 is an endless grid you mount modules on: add one, resize it from a single cell to the full width, move it anywhere, and it stays exactly where you put it. Tilt the whole board back like the SNES Mode 7 effect and look down it toward the horizon.
 
-It runs in a browser, so it runs on a Mac, an iPad, a phone, a Steam Deck. The first tool built on it will be a minimal DAW. The long-term goal is that any module can be prompted into existence and its code edited live.
+It runs in a browser, so it runs on a Mac, an iPad, a phone, a Steam Deck. It works offline, installs to your home screen, and there's a native Mac app. The first tool built on it will be a minimal DAW. The long-term goal is that any module can be prompted into existence and its code edited live.
 
 **Status:** the foundation. The grid, solver, camera, gestures and module API are real and tested. The modules in the testbed are blank placeholders.
+
+## Get it
+
+- **Web:** open [modeseven.vercel.app](https://modeseven.vercel.app). After the first visit it works offline. On iPhone/iPad: Share → Add to Home Screen. In Chrome on a Mac: the install icon in the address bar.
+- **Mac app:** download the `.dmg` from the latest [Mac app build](https://github.com/riptosrage/modeseven/actions/workflows/desktop.yml) (open a green run → Artifacts → Mode7-mac). It isn't signed yet, so the first time: right-click Mode 7 → Open. Tagged versions also appear under Releases.
+- **Save and open:** the download/folder buttons in the toolbar save your board to a `.mode7.json` file and open one back. Browser storage isn't a safe only copy; files are.
 
 ## Run it
 
@@ -35,7 +41,7 @@ Gestures follow iOS wherever iOS has an answer.
 | --- | --- |
 | Drag a module's header | Move it. Only modules it lands on move out of the way |
 | Drag the bottom-right corner | Resize, snapping to whole cells. A badge shows `4 × 2 · Wide` |
-| Long-press a module | Arrange mode: modules wobble, any edge resizes, drag from anywhere |
+| Long-press a module's header, or the Arrange button | Arrange mode: modules wobble, any edge resizes, drag from anywhere. (Holding a module's controls never triggers it.) |
 | In Arrange, drag across empty cells | Draw a new module that size, then pick what it is |
 | Tap or hover an empty cell, tap the + | Radial add menu |
 | Hold an empty cell, slide, release | Radial add menu, picked on release |
@@ -64,10 +70,23 @@ packages/core/src/
   input/    the gesture state machine, keyboard
   modules/  the module API types
   styles/   design tokens and board styles
-apps/testbed/   blank-widget playground (and its e2e tests)
+apps/testbed/   blank-widget playground (and its e2e tests); also the web/PWA build
+apps/desktop/   the Mac app: a Tauri shell around the testbed build
 legacy/slab-v0/ the first prototype, kept for reference
 docs/           architecture and design notes
 ```
+
+## Building the Mac app yourself
+
+Needs macOS with Xcode command line tools and Rust (`curl https://sh.rustup.rs -sSf | sh`).
+
+```sh
+npm install
+npm run dev -w @mode7/desktop     # live-reloading app window
+npm run build -w @mode7/desktop   # Mode 7.app and a .dmg in apps/desktop/src-tauri/target/release/bundle
+```
+
+GitHub builds it automatically on every push to `main` (see `.github/workflows/desktop.yml`).
 
 ## Writing a module
 

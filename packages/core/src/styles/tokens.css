@@ -35,7 +35,7 @@
   --m7-shadow-inset: inset 0 1px 2px rgba(16, 24, 40, 0.07);
 
   /* type: one family, two voices. Sans for words, mono for numbers and names of things. */
-  --m7-font: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --m7-font: 'Geist', 'Geist Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --m7-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --m7-text-label: 11px;
   --m7-text-ui: 12px;

@@ -1,3 +1,8 @@
+import '@fontsource/geist-sans/400.css';
+import '@fontsource/geist-sans/500.css';
+import '@fontsource/geist-sans/600.css';
+import '@fontsource/geist-mono/400.css';
+import '@fontsource/geist-mono/500.css';
 import '@mode7/core/styles.css';
 import './style.css';
 import { Board, Store, svg, type Doc, type Layout } from '@mode7/core';
@@ -8,6 +13,7 @@ import { wave } from './modules/wave';
 import { clock } from './modules/clock';
 import { xy } from './modules/xy';
 import { Demo } from './demo';
+import { isTauri, keepStorage, openText, registerOffline, saveText } from './platform';
 
 /* ---- starter board: a few blanks at 12 columns; other widths derive from it ---- */
 const mods: [string, string, [number, number, number, number], Record<string, unknown>?][] = [
@@ -160,5 +166,34 @@ const demo = new Demo(board, store, {
 demoBtn.onclick = () => (demo.running || demo.showing ? demo.exit() : demo.play());
 // Open with #demo in the URL to start it automatically (handy for screen recordings).
 if (location.hash === '#demo') setTimeout(() => demo.play(), 900);
+
+/* ---- project files: save / open ---- */
+$('#save').onclick = async () => {
+  const name = `${store.layer.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'board'}.mode7.json`;
+  const file = JSON.stringify({ format: 'mode7', version: 1, savedAt: new Date().toISOString(), doc: store.doc.get() }, null, 2);
+  try {
+    if (await saveText(name, file)) board.overlays.toast('Saved');
+  } catch (e) {
+    board.overlays.toast("Couldn't save the file");
+    console.error(e);
+  }
+};
+$('#open').onclick = async () => {
+  try {
+    const text = await openText();
+    if (!text) return;
+    const data = JSON.parse(text);
+    store.replace(data?.format === 'mode7' ? data.doc : data);
+    board.overlays.toast('Opened', { label: 'Undo', run: () => store.undo() });
+  } catch (e) {
+    board.overlays.toast("That file isn't a Mode 7 project");
+    console.error(e);
+  }
+};
+
+/* ---- platform ---- */
+if (isTauri) document.documentElement.classList.add('is-tauri');
+keepStorage();
+registerOffline();
 
 Object.assign(window, { board, store, demo });

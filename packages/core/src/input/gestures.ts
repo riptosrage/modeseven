@@ -14,7 +14,7 @@ import type { Dir } from '../render/shell';
  *
  *   Use mode:     header drag → move · corner → resize · body → the module's own
  *                 empty canvas: drag → pan · tap → show + · hold → radial add
- *                 long-press on a module → Arrange (and keep dragging)
+ *                 long-press on a module's header → Arrange (and keep dragging)
  *   Arrange mode: drag anywhere on a module → move · any edge → resize
  *                 empty canvas: drag → draw a new module · tap → Done
  *
@@ -149,7 +149,9 @@ export class Gestures {
     const p = this.p;
     if (!p || this.a) return;
     const b = this.b;
-    if (p.mod && (p.zone === 'head' || p.zone === 'body')) {
+    // Only the header enters Arrange. Holding a pad or knob must never start jiggle mode.
+    // (In Arrange, body presses are already treated as 'head' so you can lift from anywhere.)
+    if (p.mod && p.zone === 'head') {
       if (b.mode.get() === 'use') {
         b.setMode('arrange');
         navigator.vibrate?.(8);

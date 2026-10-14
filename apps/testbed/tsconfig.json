@@ -1,1 +1,1 @@
-{ "extends": "../../tsconfig.base.json", "compilerOptions": { "types": ["vite/client", "node"] }, "include": ["src", "e2e", "playwright.config.ts"] }
+{ "extends": "../../tsconfig.base.json", "compilerOptions": { "types": ["vite/client", "node", "vite-plugin-pwa/client"] }, "include": ["src", "e2e", "playwright.config.ts", "vite.config.ts"] }

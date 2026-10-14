@@ -1,0 +1,48 @@
+name: Mac app
+
+# Builds Mode 7.app (Apple Silicon + Intel) on a Mac runner.
+# Every push to main: download the .dmg from the run's "Artifacts".
+# Tag a version (git tag v0.1.0 && git push --tags): also attached to a GitHub Release.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:
+      - 'packages/**'
+      - 'apps/testbed/**'
+      - 'apps/desktop/**'
+      - 'package-lock.json'
+      - '.github/workflows/desktop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+      - run: npm ci
+      - name: Build Mode 7.app
+        run: npm run build:mac -w @mode7/desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Mode7-mac
+          path: apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          retention-days: 30
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          generate_release_notes: true

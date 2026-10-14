@@ -19,11 +19,19 @@ npm run typecheck
 
 In a sandbox without Playwright browsers, set `PW_CHROMIUM` to a Chromium binary path.
 
+## Platforms
+
+- Web/PWA first, offline after first load. Fonts are self-hosted (@fontsource); no network requests at runtime.
+- Mac app via Tauri (uses WebKit, so it inherits Safari's audio behaviour). Built by GitHub Actions on macOS (`desktop.yml`); unsigned until there's an Apple Developer account.
+- Phone: same board, phone-tuned; later also a remote/controller for a bigger screen.
+- CI (`ci.yml`) runs typecheck, unit and e2e tests on every push.
+
 ## Rules of the codebase
 
 - **Layout maths stays pure.** Anything in `packages/core/src/solver` has no DOM and gets a unit test. A layout bug becomes a solver test first.
 - **Every change is a command.** UI never mutates the doc; it dispatches (`store.dispatch`) or previews inside a transaction (`store.begin()`). Gestures always preview from `txn.base`, never from the previous preview.
 - **Pegboard: no gravity.** Modules stay put. Only `tidy` compacts.
+- **Arrange is entered from a module's header (long-press) or an explicit button, never from module content.**
 - **One clock.** Animate through springs stepped by `board.clock`; no `setInterval`, no CSS transitions on positions. The loop must go idle when nothing moves.
 - **No literal colours** in engine CSS; use the tokens in `styles/tokens.css`.
 - **Modules own `.m7-content` only.** They never touch the shell. Interactive controls inside a module get `data-m7-interactive`.
@@ -33,5 +41,6 @@ In a sandbox without Playwright browsers, set `PW_CHROMIUM` to a Chromium binary
 ## Layout
 
 - `packages/core`: the engine (`@mode7/core`)
-- `apps/testbed`: blank-widget playground
+- `apps/testbed`: blank-widget playground; also the offline web app (PWA, vite-plugin-pwa) and the frontend the Mac app bundles
+- `apps/desktop`: Tauri v2 Mac app (`src-tauri/`). Native powers go in as Tauri plugins; JS reaches them through `apps/testbed/src/platform.ts`, which falls back to browser APIs. Never call Tauri APIs from module code.
 - `legacy/slab-v0`: first prototype (old Slab DAW mock), reference only, not built
