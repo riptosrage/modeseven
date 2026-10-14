@@ -1,5 +1,7 @@
 # Mode 7
 
+**Try it live: [modeseven.vercel.app](https://modeseven.vercel.app)** · [10-second demo](https://modeseven.vercel.app/#demo)
+
 A pegboard for building your own tools. Mode 7 is an endless grid you mount modules on: add one, resize it from a single cell to the full width, move it anywhere, and it stays exactly where you put it. Tilt the whole board back like the SNES Mode 7 effect and look down it toward the horizon.
 
 It runs in a browser, so it runs on a Mac, an iPad, a phone, a Steam Deck. The first tool built on it will be a minimal DAW. The long-term goal is that any module can be prompted into existence and its code edited live.
