@@ -19,6 +19,7 @@ import type { ActionInput } from '../actions/actions';
 import { boardActions } from './board-actions';
 import { MapMode } from './mapmode';
 import { Palette } from './palette';
+import { CodeEditor } from './editor';
 
 export interface BoardOptions {
   root: HTMLElement;
@@ -92,6 +93,7 @@ export class Board {
   readonly gestures: Gestures;
   readonly mapMode: MapMode;
   readonly palette: Palette;
+  readonly editor: CodeEditor;
 
   constructor(readonly opts: BoardOptions) {
     this.engine = opts.engine ?? new Engine({ store: opts.store, modules: opts.modules ?? [] });
@@ -151,14 +153,27 @@ export class Board {
       }),
     );
 
+    // Code changed (hot reload, an edit, undo): swap those modules in place.
+    this.disposers.push(
+      this.engine.defsChanged.on('types', (types) => {
+        for (const s of this.shells.values()) if (types.includes(s.record.get().type)) s.remount();
+        this.cullDirty = true;
+        this.kick();
+      }),
+      this.engine.code.subscribe(() => {
+        for (const s of this.shells.values()) if (!this.def(s.record.get().type)) s.remount();
+      }),
+    );
+
     this.gestures = new Gestures(this);
     const kb = new Keyboard(this);
     this.disposers.push(() => this.gestures.destroy(), () => kb.destroy());
     new Debug(this);
     this.mapMode = new MapMode(this);
     this.palette = new Palette(this);
+    this.editor = new CodeEditor(this);
     this.engine.actions.register(...boardActions(this));
-    this.disposers.push(() => this.mapMode.destroy(), () => this.palette.destroy());
+    this.disposers.push(() => this.mapMode.destroy(), () => this.palette.destroy(), () => this.editor.destroy());
 
     this.sync();
     this.renderDock();
@@ -173,6 +188,11 @@ export class Board {
 
   get types() {
     return this.engine.types;
+  }
+
+  /** Replace a built-in module type's code (hot reload). Modules of that type swap in place. */
+  redefine(def: ModuleDef) {
+    this.engine.define(def);
   }
 
   /** Run a command, as text or an object. See `engine.actions` for the list. */
@@ -241,6 +261,9 @@ export class Board {
     return [
       ...(this.opts.moduleMenu?.(id, this) ?? []),
       { label: this.focused.get() === id ? 'Exit full screen' : 'Full screen', run: () => (this.focused.get() === id ? this.unfocus() : this.focus(id)) },
+      ...(this.engine.sourceOf(this.store.layer.modules[id]?.type ?? '') !== undefined
+        ? [{ label: 'Edit code', run: () => this.editor.open(this.store.layer.modules[id].type) }]
+        : []),
       { label: 'Duplicate', run: () => this.duplicate(id) },
       { label: 'Remove', danger: true, run: () => this.remove(id) },
     ];

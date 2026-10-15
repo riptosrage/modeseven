@@ -74,6 +74,9 @@ layer add Drums
 tilt 60
 list · params · help
 stress 1000           (a layer of 1,000 modules, to feel the scale)
+new Meter             (make your own module from code; it updates as you type)
+code meter            (open a custom module's code again)
+look plastic · look matte · theme dark · theme auto
 ```
 
 ### MIDI

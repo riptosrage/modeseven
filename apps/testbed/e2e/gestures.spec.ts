@@ -278,3 +278,35 @@ test('1,000 modules: off-screen ones sleep, far ones simplify, frames stay smoot
   console.log(`1,000 modules: ${near.drawn} drawn near, ${far.drawn} drawn / ${far.full} full far, median frame ${frames.p50.toFixed(1)} ms`);
   expect(frames.p50).toBeLessThan(40); // generous: CI machines render in software
 });
+
+test('live code: make a module, edit its code, it swaps in place and keeps its value', async ({ page }) => {
+  await page.keyboard.press('Control+k');
+  await page.keyboard.type('new Meter');
+  await page.keyboard.press('Enter');
+  const editor = page.locator('.m7-editor');
+  await expect(editor).toBeVisible();
+  await expect(page.locator('.m7-editor-status')).toHaveText('Running');
+  const mod = page.locator('.m7-mod[data-type="meter"]');
+  await expect(mod).toHaveCount(1);
+  await page.evaluate(() => window.engine.run('set meter 70'));
+  await expect(mod.locator('.m7-content span')).toHaveText('70%');
+
+  // Rename it in the code: the module on the board follows as you type.
+  const text = page.locator('.m7-editor-text');
+  await text.evaluate((t: HTMLTextAreaElement) => {
+    t.value = t.value.replace("title: \"Meter\"", "title: \"Level meter\"");
+    t.dispatchEvent(new Event('input'));
+  });
+  await expect(mod.locator('.m7-title')).toHaveText('Level meter');
+  await expect(mod.locator('.m7-content span')).toHaveText('70%'); // state kept
+
+  // Break it: the last good version keeps running and the error shows.
+  await text.evaluate((t: HTMLTextAreaElement) => {
+    t.value = t.value.replace('mount(el, ctx) {', 'mount(el, ctx) { (');
+    t.dispatchEvent(new Event('input'));
+  });
+  await expect(page.locator('.m7-editor-status')).toHaveClass(/is-error/);
+  await expect(mod.locator('.m7-content span')).toHaveText('70%');
+  await page.locator('.m7-editor-close').click();
+  await expect(editor).toBeHidden();
+});

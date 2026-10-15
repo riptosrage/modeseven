@@ -122,7 +122,17 @@ export class Shell {
     const rec = this.record.get();
     const def = this.board.def(rec.type);
     if (!def) {
-      this.body.innerHTML = `<div class="m7-missing">No module called “${rec.type}”</div>`;
+      const status = this.board.engine.code.get()[rec.type];
+      const box = document.createElement('div');
+      box.className = 'm7-missing';
+      if (status?.state === 'untrusted') {
+        // Code that came with an opened file never runs until the person says so.
+        box.innerHTML = `<span>This board brought its own code for “${esc(rec.type)}”.</span><button data-m7-interactive class="m7-missing-act">Run its code</button>`;
+        box.querySelector('button')!.onclick = () => void this.board.engine.trustAll();
+      } else if (status?.state === 'error') {
+        box.textContent = status.error;
+      } else box.textContent = `No module called “${rec.type}”`;
+      this.body.appendChild(box);
       return;
     }
     const ctx: ModuleContext = {
@@ -147,6 +157,18 @@ export class Shell {
       console.error(`[mode7] module "${rec.type}" crashed while mounting`, err);
       this.body.innerHTML = `<div class="m7-missing">This module crashed. See the console.</div>`;
     }
+  }
+
+  /** The module's code changed: tear down and build again with the new definition. State lives in the doc, so nothing is lost. */
+  remount() {
+    this.cleanup?.();
+    this.cleanup = undefined;
+    this.gesture = null;
+    this.body.innerHTML = '';
+    this.header.innerHTML = '';
+    const rec = this.record.get();
+    this.titleEl.textContent = rec.title ?? this.board.def(rec.type)?.title ?? rec.type;
+    if (this.mounted) this.mount(this.mode);
   }
 
   /** Swap content if the type changed, otherwise just update record and title. */
@@ -241,3 +263,5 @@ export class Shell {
     this.el.remove();
   }
 }
+
+const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);

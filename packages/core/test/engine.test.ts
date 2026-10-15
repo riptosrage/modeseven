@@ -240,3 +240,71 @@ describe('MIDI', () => {
     expect(e.store.doc.get().mappings).toEqual({});
   });
 });
+
+describe('custom module code', () => {
+  const src = (title: string, max = 100) => `export default ({ defineModule, param }) => defineModule({
+    title: ${JSON.stringify(title)},
+    size: [2, 1],
+    params: { level: param.number(0, ${max}, 40) },
+    mount(el, ctx) {},
+  });`;
+
+  it('defines a type from source, saved in the doc, and swaps it on edit', async () => {
+    const e = engine();
+    const changed: string[][] = [];
+    e.defsChanged.on('types', (t) => changed.push(t));
+    expect(await e.defineType('meter', src('Meter'))).toEqual({ state: 'running' });
+    expect(e.def('meter')?.title).toBe('Meter');
+    const id = must<string>(e.run('add meter'));
+    expect(must(e.run('set meter 75'))).toBe('75');
+    await e.defineType('meter', src('Big meter', 200));
+    expect(e.def('meter')?.title).toBe('Big meter');
+    expect(e.params.get(`${id}.level`)).toBe(75); // state survives the swap
+    expect(changed).toEqual([['meter'], ['meter']]);
+    expect(e.store.doc.get().types?.meter.source).toContain('Big meter');
+  });
+
+  it('keeps the last good version when an edit is broken, and says why', async () => {
+    const e = engine();
+    await e.defineType('meter', src('Meter'));
+    await expect(e.defineType('meter', 'export default ({ defineModule }) => defineModule({ title: "x" })')).rejects.toThrow(/mount/);
+    expect(e.def('meter')?.title).toBe('Meter');
+    await expect(e.defineType('meter', 'import x from "y"')).rejects.toThrow(/import/);
+  });
+
+  it('undo goes back to the previous code', async () => {
+    const e = engine();
+    await e.defineType('meter', src('One'));
+    await new Promise((r) => setTimeout(r, 5));
+    e.store.dispatch({ t: 'type.define', type: 'meter', source: src('Two') }); // a separate step
+    await e.typesReady();
+    e.store.undo();
+    await e.typesReady();
+    expect(e.def('meter')?.title).toBe('One');
+  });
+
+  it("doesn't run code from an opened board until it's trusted", async () => {
+    const author = engine();
+    await author.defineType('meter', src('Meter'));
+    author.run('add meter');
+    const file = JSON.parse(JSON.stringify(author.store.doc.get()));
+
+    const other = engine(); // another person's device: nothing trusted
+    other.store.replace(file);
+    await other.typesReady();
+    expect(other.def('meter')).toBeUndefined();
+    expect(other.code.get().meter).toEqual({ state: 'untrusted' });
+    await other.trustAll();
+    expect(other.def('meter')?.title).toBe('Meter');
+  });
+
+  it('`new` makes a working module from the template', async () => {
+    const e = engine();
+    const r = await e.runAsync('new Bass meter');
+    expect(r.ok).toBe(true);
+    const { type, id } = (r as { value: { type: string; id: string } }).value;
+    expect(type).toBe('bass-meter');
+    expect(e.def(type)?.params?.level).toBeTruthy();
+    expect(e.store.layer.modules[id].type).toBe(type);
+  });
+});

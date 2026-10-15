@@ -4,13 +4,21 @@ import { firstFree } from './solver/place';
 import type { ModuleDef } from './modules/types';
 import { Params } from './params/registry';
 import { Midi } from './midi/midi';
+import { Emitter, type Signal, signal } from './store/signal';
+import type { Doc } from './store/doc';
+import { type TrustStore, compileModule, hashSource, memoryTrust, templateSource } from './modules/code';
 import { Actions, type ActionDef, type ActionInput, type ArgSpec, type ArgType, parseCell, parseSize } from './actions/actions';
 
 export interface EngineOptions {
   modules: ModuleDef[];
   store?: Store;
   storage?: StoreOptions;
+  /** Which custom-module code has been trusted to run. Persist it to remember across sessions. */
+  trust?: TrustStore;
 }
+
+/** Where a custom module type's code is at. */
+export type CodeStatus = { state: 'running' } | { state: 'error'; error: string } | { state: 'untrusted' };
 
 let seq = 0;
 export const newId = (prefix = 'm') => `${prefix}${Date.now().toString(36)}${(seq++).toString(36)}`;
@@ -29,14 +37,102 @@ export class Engine {
   readonly params: Params;
   readonly actions: Actions<Engine>;
   readonly midi: Midi;
+  /** Custom module types (code in the doc) and how each is doing. */
+  readonly code: Signal<Record<string, CodeStatus>> = signal({});
+  /** Fires with the module types whose definition just changed, so renderers can swap them in place. */
+  readonly defsChanged = new Emitter<{ types: string[] }>();
   private defs = new Map<string, ModuleDef>();
+  private builtins = new Map<string, ModuleDef>();
+  private compiled = new Map<string, string>();
+  private trust: TrustStore;
+  private syncing: Promise<void> = Promise.resolve();
 
   constructor(opts: EngineOptions) {
     this.store = opts.store ?? new Store(opts.storage);
-    opts.modules.forEach((d) => this.defs.set(d.type, d));
+    this.trust = opts.trust ?? memoryTrust();
+    opts.modules.forEach((d) => (this.defs.set(d.type, d), this.builtins.set(d.type, d)));
     this.params = new Params(this.store, (t) => this.defs.get(t));
     this.midi = new Midi(this.store, this.params);
     this.actions = new Actions<Engine>(this, (type, raw, spec) => this.resolve(type, raw, spec)).register(...coreActions);
+    this.store.doc.subscribe((d, p) => d.types !== p.types && this.syncTypes(d));
+    this.syncTypes(this.store.doc.get());
+  }
+
+  /* ------------------------------------------------------------ custom module code */
+
+  /**
+   * Create or update a custom module type from source. The code is trusted
+   * (you wrote it here), saved in the doc, undoable, and every module of
+   * that type swaps to it. Resolves once it's running, or with the error.
+   */
+  async defineType(type: string, source: string): Promise<CodeStatus> {
+    compileModule(source, type); // throws a readable error before anything is saved
+    const hash = await hashSource(source);
+    if (hash) this.trust.add(hash);
+    this.store.dispatch({ t: 'type.define', type, source }, { coalesce: `code:${type}` });
+    await this.typesReady();
+    return this.code.get()[type] ?? { state: 'running' };
+  }
+
+  /** Run code that came from outside (an opened file) that the person has now looked at and trusted. */
+  async trustAll() {
+    const types = this.store.doc.get().types ?? {};
+    for (const t of Object.values(types)) {
+      const h = await hashSource(t.source);
+      if (h) this.trust.add(h);
+    }
+    this.compiled.clear();
+    this.syncTypes(this.store.doc.get());
+    await this.typesReady();
+  }
+
+  /** Resolves when every custom type in the doc has been compiled (or refused). */
+  typesReady() {
+    return this.syncing;
+  }
+
+  /** Source of a custom type, if it is one. */
+  sourceOf(type: string): string | undefined {
+    return this.store.doc.get().types?.[type]?.source;
+  }
+
+  private syncTypes(doc: Doc) {
+    const run = async () => {
+      const types = doc.types ?? {};
+      const status: Record<string, CodeStatus> = { ...this.code.get() };
+      const changed: string[] = [];
+      for (const [type, { source }] of Object.entries(types)) {
+        if (this.compiled.get(type) === source) continue;
+        const hash = await hashSource(source);
+        if (this.store.doc.get().types?.[type]?.source !== source) continue; // superseded while hashing
+        if (!hash || !this.trust.has(hash)) {
+          status[type] = { state: 'untrusted' };
+          continue;
+        }
+        try {
+          this.defs.set(type, compileModule(source, type));
+          this.compiled.set(type, source);
+          status[type] = { state: 'running' };
+          changed.push(type);
+        } catch (e) {
+          // Keep the last good version running; report the problem.
+          status[type] = { state: 'error', error: (e as Error).message };
+        }
+      }
+      for (const type of [...this.compiled.keys()]) {
+        if (types[type]) continue;
+        this.compiled.delete(type);
+        delete status[type];
+        const b = this.builtins.get(type);
+        if (b) this.defs.set(type, b);
+        else this.defs.delete(type);
+        changed.push(type);
+      }
+      for (const type of Object.keys(status)) if (!types[type]) delete status[type];
+      this.code.set(status);
+      if (changed.length) this.defsChanged.emit('types', changed);
+    };
+    this.syncing = this.syncing.then(run, run);
   }
 
   def(type: string) {
@@ -47,14 +143,22 @@ export class Engine {
     return [...this.defs.values()];
   }
 
-  /** Register a module type at runtime (hot-loaded or AI-made). Existing modules of that type pick it up on the next render. */
+  /** Register or replace a built-in module type at runtime (hot reload). Renderers swap existing modules of that type in place. */
   define(def: ModuleDef) {
+    this.builtins.set(def.type, def);
+    if (this.compiled.has(def.type)) return; // a custom version overrides it
     this.defs.set(def.type, def);
+    this.defsChanged.emit('types', [def.type]);
   }
 
   /** Run a command: `run('add knob at 3,2')` or `run({ action: 'add', type: 'knob', at: [3, 2] })`. */
   run(input: ActionInput) {
     return this.actions.run(input);
+  }
+
+  /** `run`, awaiting actions that take time. What AI tool calls and the palette use. */
+  runAsync(input: ActionInput) {
+    return this.actions.runAsync(input);
   }
 
   /** Add a module. With a rect it goes there, pushing others aside; otherwise the first free spot. Returns its id. */
@@ -300,6 +404,32 @@ const coreActions: ActionDef<Engine>[] = [
     describe: 'List parameters, of one module or the whole layer.',
     args: [{ name: 'module', type: 'module', optional: true }],
     run: (a, e) => e.params.list({ module: a.module }).map(({ spec: _s, ...p }) => p),
+  }),
+  A({
+    name: 'new',
+    describe: 'Make a new module type from code, add one, and open its code.',
+    args: [{ name: 'title', type: 'text' }],
+    async run(a, e) {
+      const base = String(a.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'custom';
+      let type = base;
+      for (let i = 2; e.def(type) || e.sourceOf(type); i++) type = `${base}-${i}`;
+      await e.defineType(type, templateSource(String(a.title)));
+      return { type, id: e.add(type) };
+    },
+  }),
+  A({
+    name: 'types',
+    describe: 'List the module types: built in, and custom ones with their status.',
+    run(_a, e) {
+      const code = e.code.get();
+      return e.types.map((d) => ({ type: d.type, title: d.title, custom: !!e.sourceOf(d.type), status: code[d.type]?.state ?? 'built in' }))
+        .concat(Object.keys(code).filter((t) => !e.def(t)).map((t) => ({ type: t, title: t, custom: true, status: code[t].state })));
+    },
+  }),
+  A({
+    name: 'trust',
+    describe: 'Run the custom module code in a board you opened. Only do this for boards from people you trust.',
+    run: (_a, e) => e.trustAll(),
   }),
   A({
     name: 'help',

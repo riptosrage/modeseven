@@ -132,10 +132,10 @@ export class Palette {
     }
   }
 
-  private submit() {
+  private async submit() {
     const text = this.input.value.trim();
     if (!text) return this.fill(this.rows[this.index]);
-    const r = this.b.run(text);
+    const r = await this.b.engine.runAsync(text);
     if (!r.ok) {
       this.show(r.error, true);
       return;
@@ -143,6 +143,7 @@ export class Palette {
     this.history.push(text);
     this.back = -1;
     const v = r.value;
+    if (r.action === 'new') return this.close(); // the code editor takes over
     if (v && typeof v === 'object') {
       // Lists (help, list, params) stay up to read.
       this.show(Array.isArray(v) ? v.map(line).join('\n') : JSON.stringify(v, null, 2), false);

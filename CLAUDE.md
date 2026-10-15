@@ -38,6 +38,8 @@ In a sandbox without Playwright browsers, set `PW_CHROMIUM` to a Chromium binary
 - **One clock.** Animate through springs stepped by `board.clock`; no `setInterval`, no CSS transitions on positions. The loop must go idle when nothing moves.
 - **No literal colours** in engine CSS; use the tokens in `styles/tokens.css`.
 - **Pay only for what's on screen.** Modules mount lazily and get culled/LOD'd; anything animated inside a module pauses on `ctx.visible === false`. Per-frame and per-change work must be O(changed), not O(modules). `stress 1000` in ⌘K to check.
+- **Never run code nobody trusted.** Custom module source in a doc only compiles once its hash is in the `TrustStore` (authored here, or the person pressed "Run its code"). Keep the module API (`moduleApi` in `modules/code.ts`) small and deliberate.
+- **Looks are tokens.** Visual changes to the shell go through tokens in `styles/tokens.css`, defined for every look (matte, plastic) and theme (light, dark).
 - **Modules own `.m7-content` only.** They never touch the shell. Interactive controls inside a module get `data-m7-interactive`.
 - A new gesture or gesture fix gets a Playwright test in `apps/testbed/e2e`.
 - Keep the engine framework-free TypeScript. Modules may use anything inside their box.

@@ -60,6 +60,22 @@ Modules are referred to by id, title or type ("the knob"), with a readable error
 
 In a module, `ctx.param('cutoff')` gives a handle: `get/set/setNormal/text`, `subscribe` (paint from here, since changes arrive from MIDI, undo or a command too), and `begin/end` to make a drag one undo step. `ctx.begin/end` groups several params (an XY pad).
 
+## Custom modules: code that lives in the board
+
+`modules/code.ts`, `engine.ts`, `render/editor.ts`. A custom module type is a small plain-JS file stored in the doc (`doc.types`), so a board carries its own modules into saved files, replays and (later) sync. The format has no imports; the engine passes in what a module needs:
+
+```js
+export default ({ defineModule, param, svg }) => defineModule({ title: 'Meter', size: [2, 2], params: { … }, mount(el, ctx) { … } });
+```
+
+- **Hot swap.** Changing a type's source (`engine.defineType`, the editor, undo) recompiles it and the board remounts every module of that type. State lives in the doc, so values survive. A broken edit keeps the last good version running and reports the error.
+- **Trust.** Code runs with the page's powers, so source that arrives from outside (an opened file) shows "Run its code" instead of running. Trusted code is remembered by SHA-256 in a `TrustStore` (the testbed persists it). AI-written modules will run in a sandboxed frame instead, same format.
+- **Built-in types hot-reload too.** In `npm run dev`, editing a module file under `apps/testbed/src/modules` swaps it in place via Vite HMR and `board.redefine(def)`.
+
+## Looks and themes
+
+A look is only token values (`styles/tokens.css`): colours by role plus material tokens (`--m7-face`, `--m7-face-shadow`, `--m7-head-bg`, `--m7-grain`, `--m7-light`, radii). `data-look="matte"` (default: e-ink paper, grain that moves with the board, one light fixed to the screen) or `"plastic"`; `data-theme="light|dark"` or unset to follow the system. A new look is a new block of values, nothing else.
+
 ## MIDI
 
 `midi/midi.ts`. Messages come in through `inject(bytes)`, from Web MIDI (Chrome, Edge), later a native bridge in the Mac app (WebKit has no Web MIDI), the phone, or a test. Mappings (`midi:cc:1:74 → m12.cutoff`) live in the doc. **Map mode** (`render/mapmode.ts`) works like Ableton's: any element a module marks `data-m7-param="key"` gets a ring; tap it, move a control, mapped. Modules write no MIDI code.

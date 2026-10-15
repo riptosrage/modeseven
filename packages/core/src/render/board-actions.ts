@@ -7,7 +7,9 @@ import type { Board } from './board';
  * engine by the board, so the palette, scripts and AI see one list.
  */
 export function boardActions(b: Board): ActionDef<Engine>[] {
+  // Capture the engine's own versions before these wrappers replace them.
   const add = b.engine.actions.get('add')!;
+  const make = b.engine.actions.get('new')!;
   const defs: ActionDef<Engine>[] = [
     {
       // Same args as the engine's add, plus the board's select-and-pop.
@@ -18,6 +20,37 @@ export function boardActions(b: Board): ActionDef<Engine>[] {
         b.pop(id);
         b.reveal(id);
         return id;
+      },
+    },
+    {
+      ...make,
+      async run(a, e) {
+        const r = (await make.run(a, e)) as { type: string; id: string };
+        b.selected.set(r.id);
+        b.pop(r.id);
+        b.reveal(r.id);
+        b.editor.open(r.type);
+        return r;
+      },
+    },
+    {
+      name: 'code',
+      describe: 'Open the code of a custom module type, by type or by a module of that type.',
+      args: [{ name: 'type', type: 'text' }],
+      run(a, e) {
+        const ref = String(a.type).trim();
+        let type = e.sourceOf(ref) !== undefined ? ref : '';
+        if (!type) {
+          try {
+            type = e.store.layer.modules[e.find(ref)].type;
+          } catch {
+            type = ref;
+          }
+        }
+        if (e.sourceOf(type) === undefined) {
+          throw new Error(e.def(type) ? `${e.def(type)!.title} is built in, so its code lives in the app. Make your own with: new <name>` : `No custom module “${ref}”. Make one with: new <name>`);
+        }
+        b.editor.open(type);
       },
     },
     { name: 'arrange', describe: 'Arrange mode: move and resize anything.', run: () => b.setMode('arrange') },

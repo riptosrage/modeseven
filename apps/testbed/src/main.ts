@@ -5,7 +5,7 @@ import '@fontsource/geist-mono/400.css';
 import '@fontsource/geist-mono/500.css';
 import '@mode7/core/styles.css';
 import './style.css';
-import { Board, Store, svg, type Doc, type Layout } from '@mode7/core';
+import { Board, Engine, Store, svg, type Doc, type Layout, type ModuleDef, type TrustStore } from '@mode7/core';
 import { blank } from './modules/blank';
 import { note } from './modules/note';
 import { knob } from './modules/knob';
@@ -46,10 +46,33 @@ const icon = {
   blank: svg('<rect x="5" y="5" width="14" height="14" rx="3"/><path d="M12 9v6M9 12h6"/>'),
 };
 
+/** Custom module code this device has trusted (yours, or boards you chose to run). */
+const trust: TrustStore = (() => {
+  const key = 'mode7.trusted';
+  let set: Set<string>;
+  try {
+    set = new Set(JSON.parse(localStorage.getItem(key) ?? '[]'));
+  } catch {
+    set = new Set();
+  }
+  return {
+    has: (h) => set.has(h),
+    add(h) {
+      set.add(h);
+      try {
+        localStorage.setItem(key, JSON.stringify([...set].slice(-500)));
+      } catch {
+        /* storage blocked */
+      }
+    },
+  };
+})();
+
+const engine = new Engine({ store, trust, modules: [blank, note, knob, wave, clock, xy] });
+
 const board = new Board({
   root: document.getElementById('board')!,
-  store,
-  modules: [blank, note, knob, wave, clock, xy],
+  engine,
   addMenu: [
     {
       key: 'blanks',
@@ -268,5 +291,12 @@ $('#build').title = 'Build. Changes after every update.';
 if (isTauri) document.documentElement.classList.add('is-tauri');
 keepStorage();
 registerOffline();
+
+/* ---- hot reload: edit a module file while `npm run dev` runs and it swaps in place, state kept ---- */
+if (import.meta.hot) {
+  import.meta.hot.accept(['./modules/blank', './modules/note', './modules/knob', './modules/wave', './modules/clock', './modules/xy'], (mods) => {
+    for (const m of mods) for (const def of Object.values(m ?? {}) as Partial<ModuleDef>[]) if (typeof def?.mount === 'function') board.redefine(def as ModuleDef);
+  });
+}
 
 Object.assign(window, { board, store, demo, engine: board.engine });

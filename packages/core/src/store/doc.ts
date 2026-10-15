@@ -31,6 +31,8 @@ export interface Doc {
   active: number;
   /** Controller mappings: source key (e.g. `midi:cc:1:74`) → param address (`moduleId.key`). */
   mappings?: Record<string, string>;
+  /** Custom module types, as source code, carried with the board (see modules/code.ts). */
+  types?: Record<string, { source: string }>;
 }
 
 export type Command =
@@ -43,6 +45,8 @@ export type Command =
   | { t: 'param'; id: string; values: Record<string, ParamValue> }
   | { t: 'map'; source: string; target: string }
   | { t: 'unmap'; source: string }
+  | { t: 'type.define'; type: string; source: string }
+  | { t: 'type.remove'; type: string }
   | { t: 'tidy' }
   | { t: 'layer.add'; id: string; name: string }
   | { t: 'layer.rename'; index: number; name: string }
@@ -185,6 +189,15 @@ export function reduce(doc: Doc, cmd: Command, cols: number): Doc {
       delete mappings[cmd.source];
       return { ...doc, mappings };
     }
+    case 'type.define':
+      if (doc.types?.[cmd.type]?.source === cmd.source) return doc;
+      return { ...doc, types: { ...doc.types, [cmd.type]: { source: cmd.source } } };
+    case 'type.remove': {
+      if (!doc.types?.[cmd.type]) return doc;
+      const types = { ...doc.types };
+      delete types[cmd.type];
+      return { ...doc, types };
+    }
     case 'tidy':
       return withLayer(doc, (l) => setLayout(l, cols, tidy(layoutFor(l, cols), cols)));
     case 'layer.add':
@@ -216,5 +229,6 @@ export function validateDoc(x: unknown): Doc | null {
   if (!d || d.v !== 1 || !Array.isArray(d.layers) || !d.layers.length) return null;
   for (const l of d.layers) if (typeof l.id !== 'string' || typeof l.modules !== 'object' || typeof l.layouts !== 'object') return null;
   if (d.mappings !== undefined && (typeof d.mappings !== 'object' || d.mappings === null)) return null;
+  if (d.types !== undefined && (typeof d.types !== 'object' || d.types === null || Object.values(d.types).some((t) => typeof t?.source !== 'string'))) return null;
   return { ...d, active: Math.min(Math.max(0, d.active | 0), d.layers.length - 1) };
 }

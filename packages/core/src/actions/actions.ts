@@ -117,6 +117,17 @@ export class Actions<C = unknown> {
     }
   }
 
+  /** Like `run`, but waits for actions that take time (compiling code, loading) and reports their errors too. */
+  async runAsync(input: ActionInput): Promise<ActionResult> {
+    const r = this.run(input);
+    if (!r.ok || !(r.value instanceof Promise)) return r;
+    try {
+      return { ok: true, action: r.action, value: await r.value };
+    } catch (e) {
+      return { ok: false, action: r.action, error: (e as Error).message };
+    }
+  }
+
   /** Text → action name + raw arg strings. */
   parse(text: string): Parsed {
     const tokens = tokenize(text);
