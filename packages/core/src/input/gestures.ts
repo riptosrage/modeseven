@@ -278,6 +278,12 @@ export class Gestures {
     const b = this.b;
     const arranging = b.mode.get() === 'arrange';
     if (p.zone === 'head' && p.mod) {
+      // On a phone a module is too small to use in place: one tap opens it full screen,
+      // the way tapping a widget opens its app. (Done, Escape or the veil bring it back.)
+      if (!arranging && e.pointerType !== 'mouse' && b.metrics.cols <= 4 && b.focused.get() !== p.mod) {
+        b.focus(p.mod);
+        return;
+      }
       const now = performance.now();
       if (this.lastTap.mod === p.mod && now - this.lastTap.t < DOUBLE_TAP_MS) {
         this.lastTap = { mod: '', t: 0 };
@@ -309,6 +315,7 @@ export class Gestures {
     if (!id) return;
     if (t.dataset.m7Act === 'menu') this.b.overlays.menu(t.getBoundingClientRect(), this.b.menuFor(id));
     if (t.dataset.m7Act === 'remove') this.b.remove(id);
+    if (t.dataset.m7Act === 'unfocus') this.b.unfocus();
   };
 
   /* ---------------------------------------------------------- hover (+) */

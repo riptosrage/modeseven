@@ -46,6 +46,7 @@ Gestures follow iOS wherever iOS has an answer.
 | Tap or hover an empty cell, tap the + | Radial add menu |
 | Hold an empty cell, slide, release | Radial add menu, picked on release |
 | Double-tap a header, or Enter | Full screen. Again, or Escape, to return |
+| On a phone: tap a header | Full screen, like opening a widget's app. Done to return |
 | Drag empty canvas, or scroll | Pan |
 | Pinch, or ⌘/Ctrl + scroll | Zoom |
 | ⌥ + scroll, the Tilt slider, or T | Tilt the board (Mode 7) |

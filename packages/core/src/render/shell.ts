@@ -58,7 +58,7 @@ export class Shell {
     el.className = 'm7-mod';
     el.dataset.id = rec.id;
     el.innerHTML = `<div class="m7-face">
-        <div class="m7-head" data-m7-zone="head"><span class="m7-title"></span><div class="m7-actions"></div><button class="m7-more" data-m7-zone="chrome" data-m7-act="menu" aria-label="Module options">${icons.dots}</button></div>
+        <div class="m7-head" data-m7-zone="head"><span class="m7-title"></span><div class="m7-actions"></div><button class="m7-unfocus" data-m7-zone="chrome" data-m7-act="unfocus">Done</button><button class="m7-more" data-m7-zone="chrome" data-m7-act="menu" aria-label="Module options">${icons.dots}</button></div>
         <div class="m7-body" data-m7-zone="body"><div class="m7-content"></div></div>
         ${DIRS.map((d) => `<div class="m7-handle m7-handle-${d}" data-m7-zone="resize" data-dir="${d}"></div>`).join('')}
       </div>

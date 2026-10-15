@@ -557,4 +557,40 @@ body.is-demo * {
   color: var(--m7-ink-3);
   letter-spacing: 0;
 }
-@media (max-width: 520px) { .brand .build { display: none; } }
+
+
+/* ---- phones: brand on top, tools at the bottom ---- */
+.tabbar { display: none; }
+@media (max-width: 600px) {
+  .bar { padding: 8px 16px; justify-content: center; }
+  .bar > :not(.brand) { display: none !important; }
+  .tabbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex: none;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: var(--m7-surface-2);
+    box-shadow: inset 0 1px 0 var(--m7-line);
+  }
+  .tab {
+    min-width: 52px;
+    height: 44px;
+    padding: 0 10px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: var(--m7-text-body);
+    font-weight: 500;
+    color: var(--m7-ink-2);
+  }
+  .tab:disabled { opacity: 0.35; }
+  .tab:active:not(:disabled) { background: var(--m7-wash); }
+  .tab.is-on { background: var(--m7-live); color: var(--m7-live-ink); font-weight: 600; }
+  .add-tab {
+    width: 52px;
+    border-radius: 50%;
+    background: var(--m7-node);
+    color: var(--m7-node-ink);
+  }
+}

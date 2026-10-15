@@ -35,6 +35,14 @@
         <button id="reset" class="pill quiet" title="Back to the starter board">Reset</button>
       </header>
       <main id="board"></main>
+      <!-- Phones: the toolbar moves to the bottom, under your thumb. -->
+      <nav class="tabbar" aria-label="Board">
+        <button id="t-arrange" class="tab">Arrange</button>
+        <button id="t-undo" class="tab icon-tab" aria-label="Undo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+        <button id="t-add" class="tab add-tab" aria-label="Add a module"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button id="t-redo" class="tab icon-tab" aria-label="Redo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+        <button id="t-more" class="tab icon-tab" aria-label="More"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></svg></button>
+      </nav>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

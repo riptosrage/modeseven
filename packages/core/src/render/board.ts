@@ -205,6 +205,7 @@ export class Board {
     const id = this.engine.add(type, rect, extra);
     this.selected.set(id);
     this.pop(id);
+    this.reveal(id);
     return id;
   }
 

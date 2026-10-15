@@ -26,6 +26,11 @@ Engine pieces it needs:
 - Onset detection and pitch tracking in an AudioWorklet (YIN or similar). No network needed.
 - Each syllable as data in the doc (time, length, pitch, text), so it saves, undoes and could feed a lyric sheet or a MIDI clip.
 
+**Latency (the phone + Bluetooth problem).** You perform to what you hear, so a take arrives late by output latency (Bluetooth: ~150–250 ms on AirPods) plus input latency. It's a steady offset, so shift every recording earlier by it:
+- *Calibrate:* say "ta" on 8 clicks; the mean lag is the whole chain (including human timing), saved per headphones.
+- *Auto-align:* per take, search ±400 ms for the shift that best lines onsets up with the beat grid; refines the calibration with no setup.
+This belongs in the shared transport/recorder, not just Flow, so every recording module is compensated.
+
 Nice later: export the rhythm as MIDI; scale the syllables to a different tempo; "count the syllables" helper for lines you've already written.
 
 ---

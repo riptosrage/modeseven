@@ -5,7 +5,7 @@ import '@fontsource/geist-mono/400.css';
 import '@fontsource/geist-mono/500.css';
 import '@mode7/core/styles.css';
 import './style.css';
-import { Board, Engine, Store, svg, type Doc, type Layout, type ModuleDef, type TrustStore } from '@mode7/core';
+import { Board, Engine, Store, firstFree, svg, type Doc, type Layout, type ModuleDef, type TrustStore } from '@mode7/core';
 import { blank } from './modules/blank';
 import { note } from './modules/note';
 import { knob } from './modules/knob';
@@ -246,6 +246,47 @@ $('#open').onclick = async () => {
     console.error(e);
   }
 };
+
+/* ---- phone toolbar ---- */
+{
+  const tArrange = $<HTMLButtonElement>('#t-arrange');
+  const tUndo = $<HTMLButtonElement>('#t-undo');
+  const tRedo = $<HTMLButtonElement>('#t-redo');
+  tArrange.onclick = () => board.setMode(board.mode.get() === 'arrange' ? 'use' : 'arrange');
+  board.mode.subscribe((m) => {
+    tArrange.textContent = m === 'arrange' ? 'Done' : 'Arrange';
+    tArrange.classList.toggle('is-on', m === 'arrange');
+  });
+  tUndo.onclick = () => store.undo();
+  tRedo.onclick = () => store.redo();
+  const sync = (h: { canUndo: boolean; canRedo: boolean }) => ((tUndo.disabled = !h.canUndo), (tRedo.disabled = !h.canRedo));
+  store.history.subscribe(sync);
+  sync(store.history.get());
+
+  // Add: the radial menu from the middle of the screen; the module lands in the first free spot (and the board glides to it).
+  $('#t-add').onclick = () => {
+    const r = board.viewport.getBoundingClientRect();
+    const spot = firstFree(store.layout(), { w: 1, h: 1 }, board.metrics.cols);
+    board.openAdd(r.left + r.width / 2, r.top + r.height / 2, { ...spot, w: 1, h: 1 }, 'tap');
+  };
+
+  // Everything else, in one menu.
+  $('#t-more').onclick = (e) => {
+    const dark = html.dataset.theme ? html.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    board.overlays.menu((e.currentTarget as HTMLElement).getBoundingClientRect(), [
+      { label: 'Commands', run: () => board.palette.open() },
+      { label: 'Tidy', run: () => store.dispatch({ t: 'tidy' }) },
+      { label: board.mapMode.on.get() ? 'Stop MIDI mapping' : 'MIDI map', run: () => board.mapMode.set(!board.mapMode.on.get()) },
+      { label: board.cameraTarget().tilt > 1 ? 'Flatten' : 'Tilt (Mode 7)', run: () => board.tiltTo(board.cameraTarget().tilt > 1 ? 0 : 55) },
+      { label: dark ? 'Light mode' : 'Dark mode', run: () => setTheme(dark ? 'light' : 'dark') },
+      { label: html.dataset.look === 'plastic' ? 'Matte look' : 'Plastic look', run: () => setLook(html.dataset.look === 'plastic' ? 'matte' : 'plastic') },
+      { label: 'Play demo', run: () => demo.play() },
+      { label: 'Open file…', run: () => $('#open').click() },
+      { label: 'Save file…', run: () => $('#save').click() },
+      { label: 'Reset board', danger: true, run: () => $('#reset').click() },
+    ]);
+  };
+}
 
 /* ---- stress test: `stress 1000` in ⌘K ---- */
 board.engine.actions.register({

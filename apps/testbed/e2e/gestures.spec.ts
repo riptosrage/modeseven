@@ -310,3 +310,26 @@ test('live code: make a module, edit its code, it swaps in place and keeps its v
   await page.locator('.m7-editor-close').click();
   await expect(editor).toBeHidden();
 });
+
+test.describe('on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  test('tap a header to open the module full screen, Done to go back', async ({ page }) => {
+    await page.locator('.m7-mod[data-id="b"] .m7-title').tap();
+    await expect.poll(() => page.evaluate(() => window.board.focused.get())).toBe('b');
+    await page.locator('.m7-mod.is-focused .m7-unfocus').tap();
+    await expect.poll(() => page.evaluate(() => window.board.focused.get())).toBeNull();
+  });
+
+  test('the toolbar sits at the bottom with Arrange, undo and add', async ({ page }) => {
+    await expect(page.locator('.tabbar')).toBeVisible();
+    await expect(page.locator('#arrange')).toBeHidden();
+    await page.locator('#t-arrange').tap();
+    expect(await mode(page)).toBe('arrange');
+    await page.locator('#t-arrange').tap();
+    const before = Object.keys(await layout(page)).length;
+    await page.locator('#t-add').tap();
+    await page.locator('.m7-radial-node[data-key="clock"]').tap();
+    await expect.poll(async () => Object.keys(await layout(page)).length).toBe(before + 1);
+  });
+});
