@@ -7,6 +7,7 @@ Mode 7 is Felix's open-source "pegboard" framework: an infinite grid of resizabl
 - He's a product designer and musician, not primarily an engineer. Bring him decisions and things to try, not implementation detail.
 - Short, plain, casual. No hype, no restating his idea back to him.
 - Lean on iOS interaction patterns; Apple is the reference for feel.
+- When he shares a module idea, add it to `docs/MODULE-IDEAS.md` (what it is, how it feels, what engine pieces it needs) rather than building it straight away, unless he says to.
 
 ## Commands
 

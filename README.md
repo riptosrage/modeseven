@@ -179,7 +179,7 @@ e.actions.tools();                                              // JSON Schema t
 await replay(otherStore, rec.stop());                           // the identical board, step by step
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit, and [docs/MODULE-IDEAS.md](docs/MODULE-IDEAS.md) for modules on the way.
 
 ## License
 
