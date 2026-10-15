@@ -21,6 +21,7 @@ export const knob = defineModule({
     // Paint from the param, whoever changed it: this drag, MIDI, undo, a command.
     const paint = () => {
       cap.style.transform = `rotate(${-135 + value.normal() * 270}deg)`;
+      knob.style.setProperty('--v', String(value.normal()));
       val.textContent = String(Math.round(Number(value.get())));
       knob.setAttribute('aria-valuenow', String(value.get()));
     };

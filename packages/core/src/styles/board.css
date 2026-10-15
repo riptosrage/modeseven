@@ -35,6 +35,15 @@
   touch-action: none;
   perspective: none;
 }
+.m7-viewport::after {
+  /* One light over everything, fixed to the screen: modules pass through it as they move. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--m7-light);
+  pointer-events: none;
+  z-index: 3;
+}
 .m7-world {
   position: absolute;
   left: 0;
@@ -49,9 +58,10 @@
   position: absolute;
   left: 0;
   top: 0;
-  background-image: radial-gradient(circle at center, var(--m7-ground-dot) 1.4px, transparent 1.9px);
-  background-size: var(--m7-pitch) var(--m7-pitch);
-  background-position: calc(var(--m7-margin) - var(--m7-gap) / 2 - var(--m7-pitch) / 2) calc(var(--m7-margin) - var(--m7-gap) / 2 - var(--m7-pitch) / 2);
+  /* The grain is on the board itself, so it travels with it under the light. */
+  background-image: radial-gradient(circle at center, var(--m7-ground-dot) 1.4px, transparent 1.9px), var(--m7-grain);
+  background-size: var(--m7-pitch) var(--m7-pitch), 180px 180px;
+  background-position: calc(var(--m7-margin) - var(--m7-gap) / 2 - var(--m7-pitch) / 2) calc(var(--m7-margin) - var(--m7-gap) / 2 - var(--m7-pitch) / 2), 0 0;
 }
 .m7.is-tilted .m7-grid {
   /* Fade the far board into the horizon. */
@@ -117,8 +127,8 @@
   inset: 0;
   border-radius: var(--m7-radius);
   overflow: hidden;
-  background: linear-gradient(180deg, var(--m7-surface-1) 0%, var(--m7-surface-2) 55%, var(--m7-surface-3) 100%);
-  box-shadow: inset 0 1px 0 var(--m7-highlight), inset 0 0 0 1px var(--m7-line), var(--m7-shadow-rest);
+  background: var(--m7-face);
+  box-shadow: var(--m7-face-shadow);
   display: flex;
   flex-direction: column;
 }
@@ -127,7 +137,7 @@
   z-index: 10;
 }
 .m7-mod.is-held .m7-face {
-  box-shadow: inset 0 1px 0 var(--m7-highlight), inset 0 0 0 1px var(--m7-line), var(--m7-shadow-lift);
+  box-shadow: var(--m7-face-shadow-lift);
 }
 .m7-mod.is-new .m7-face {
   animation: m7-pop 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2);
@@ -147,6 +157,9 @@
   height: var(--m7-head);
   padding: 0 4px 0 var(--m7-s3);
   flex: none;
+  /* A title strip, like a device in a rack. */
+  background: var(--m7-head-bg);
+  box-shadow: inset 0 -1px 0 var(--m7-head-line);
   cursor: grab;
   touch-action: none;
 }
@@ -666,4 +679,8 @@
 .m7-mod.is-lod .m7-more,
 .m7-mod.is-lod .m7-handle { display: none; }
 .m7-mod.is-lod .m7-face { box-shadow: inset 0 0 0 1px var(--m7-line), var(--m7-shadow-far); }
-.m7.is-far .m7-mod:not(.is-held) .m7-face { box-shadow: inset 0 1px 0 var(--m7-highlight), inset 0 0 0 1px var(--m7-line), var(--m7-shadow-far); }
+.m7.is-far .m7-mod:not(.is-held) .m7-face { box-shadow: inset 0 0 0 1px var(--m7-line), var(--m7-shadow-far); }
+/* Hundreds of grained faces cost paint; far away nobody can see the grain. */
+.m7.is-far .m7-face,
+.m7-mod.is-lod .m7-face { background: var(--m7-surface-1); }
+.m7-mod.is-lod .m7-head { box-shadow: none; }

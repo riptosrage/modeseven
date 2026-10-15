@@ -135,26 +135,56 @@ board.mapMode.on.subscribe((on) => $('#midi').classList.toggle('is-on', on));
 $('#cmd').onclick = () => board.palette.open();
 $('#debug').onclick = () => board.debug.set(!board.debug.get());
 board.debug.subscribe((on) => $('#debug').classList.toggle('is-on', on));
-$('#theme').onclick = () => {
-  const r = document.documentElement;
-  const dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-  r.dataset.theme = dark ? 'light' : 'dark';
+/* ---- look (matte, plastic) and theme (light, dark, auto): saved per device ---- */
+const html = document.documentElement;
+const prefs = (k: string, v?: string) => {
   try {
-    localStorage.setItem('mode7.theme', r.dataset.theme);
+    if (v === undefined) return localStorage.getItem(k);
+    if (v) localStorage.setItem(k, v);
+    else localStorage.removeItem(k);
   } catch {
-    /* ignore */
+    /* storage blocked */
   }
+  return null;
+};
+const setLook = (look: string) => {
+  if (look === 'matte') delete html.dataset.look;
+  else html.dataset.look = look;
+  prefs('mode7.look', look === 'matte' ? '' : look);
+};
+const setTheme = (theme: string) => {
+  if (theme === 'auto') delete html.dataset.theme;
+  else html.dataset.theme = theme;
+  prefs('mode7.theme', theme === 'auto' ? '' : theme);
+};
+board.engine.actions.register(
+  {
+    name: 'look',
+    describe: 'Change the material: matte (default) or plastic.',
+    args: [{ name: 'look', type: 'choice', options: ['matte', 'plastic'] }],
+    run: (a) => setLook(a.look),
+  },
+  {
+    name: 'theme',
+    describe: 'Light, dark, or follow the system.',
+    args: [{ name: 'theme', type: 'choice', options: ['light', 'dark', 'auto'] }],
+    run: (a) => setTheme(a.theme),
+  },
+);
+$('#theme').onclick = () => {
+  const dark = html.dataset.theme ? html.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  setTheme(dark ? 'light' : 'dark');
 };
 $('#reset').onclick = () => {
   store.replace(starter);
   board.tiltTo(0, true);
   board.setCamera({ zoom: 1 }, true);
 };
-try {
-  const t = localStorage.getItem('mode7.theme');
-  if (t) document.documentElement.dataset.theme = t;
-} catch {
-  /* ignore */
+{
+  const t = prefs('mode7.theme');
+  if (t) html.dataset.theme = t;
+  const l = prefs('mode7.look');
+  if (l) html.dataset.look = l;
 }
 
 /* ---- demo ---- */

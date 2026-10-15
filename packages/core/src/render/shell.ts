@@ -86,7 +86,7 @@ export class Shell {
 
   /** Off screen: hidden and asleep. Back on screen: awake. (The board mounts content once it's big enough to see.) */
   setVisible(v: boolean) {
-    if (this.culled === !v) return;
+    if (this.culled === !v) return this.syncVisible();
     this.culled = !v;
     this.el.classList.toggle('is-culled', !v);
     if (v) {

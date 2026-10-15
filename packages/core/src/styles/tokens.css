@@ -1,41 +1,15 @@
 /*
   Mode 7 design tokens.
-  Colour by role, not hue. A theme (dark, or a 1977 cockpit) redefines these
-  values and keeps the names. Nothing in the engine uses a literal colour.
+
+  Colour by role, not hue. A look (matte, plastic, a 1977 cockpit) redefines
+  these values and keeps the names. Nothing in the engine uses a literal colour.
+
+  Looks:   <html data-look="matte | plastic">   (matte is the default)
+  Themes:  <html data-theme="light | dark">     (follows the system when unset)
 */
+
+/* ------------------------------------------------------------- shared scale */
 :root {
-  /* ground and plastic */
-  --m7-ground: #e3e6ea;
-  --m7-ground-dot: #c9ced6;
-  --m7-slot: #d8dce1;
-  --m7-surface-1: #ffffff;
-  --m7-surface-2: #f8f9fa;
-  --m7-surface-3: #eceef1;
-  --m7-highlight: rgba(255, 255, 255, 0.95);
-
-  /* ink */
-  --m7-ink-1: #14181e;
-  --m7-ink-2: #58606b;
-  --m7-ink-3: #979fa9;
-  --m7-line: rgba(18, 26, 38, 0.09);
-  --m7-wash: rgba(18, 26, 38, 0.05);
-  --m7-wash-2: rgba(18, 26, 38, 0.09);
-
-  /* signal */
-  --m7-live: #e2372c;
-  --m7-live-ink: #ffffff;
-  --m7-node: #111316;
-  --m7-node-ink: #ffffff;
-  --m7-focus-ring: #2c6bed;
-  --m7-veil: rgba(227, 230, 234, 0.72);
-
-  /* heights: pressed in, resting, lifted */
-  --m7-shadow-rest: 0 1px 1px rgba(16, 24, 40, 0.05), 0 12px 26px -16px rgba(16, 24, 40, 0.32);
-  --m7-shadow-lift: 0 2px 4px rgba(16, 24, 40, 0.06), 0 30px 50px -20px rgba(16, 24, 40, 0.45);
-  --m7-shadow-inset: inset 0 1px 2px rgba(16, 24, 40, 0.07);
-  /* resting, when zoomed out or tilted: no blur, cheap to paint hundreds of */
-  --m7-shadow-far: 0 1px 0 rgba(16, 24, 40, 0.1);
-
   /* type: one family, two voices. Sans for words, mono for numbers and names of things. */
   --m7-font: 'Geist', 'Geist Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --m7-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
@@ -53,18 +27,162 @@
   --m7-s5: 24px;
   --m7-s6: 32px;
 
-  /* radius by nesting: inner = outer − inset */
-  --m7-radius: 18px;
-  --m7-radius-inner: 10px;
-  --m7-head: 30px;
-
   --m7-fade: 80ms;
+}
+
+/* ------------------------------------------------------------- matte (default)
+   E-ink paper rather than plastic: flat panels with printed edges, a fine
+   grain that moves with the material, and one soft light across the whole
+   board from the top left. Closer to Ableton's discipline, with a surface. */
+:root {
+  --m7-ground: #d5d6d0;
+  --m7-ground-dot: #b9bbb4;
+  --m7-slot: #cbcdc6;
+  --m7-surface-1: #e4e5df;
+  --m7-surface-2: #dcddd7;
+  --m7-surface-3: #cbcdc6;
+  --m7-highlight: rgba(255, 255, 255, 0.5);
+
+  --m7-ink-1: #22231f;
+  --m7-ink-2: #575953;
+  --m7-ink-3: #8a8c85;
+  --m7-line: rgba(34, 35, 31, 0.13);
+  --m7-wash: rgba(34, 35, 31, 0.05);
+  --m7-wash-2: rgba(34, 35, 31, 0.09);
+
+  --m7-live: #e2372c;
+  --m7-live-ink: #ffffff;
+  --m7-node: #22231f;
+  --m7-node-ink: #e4e5df;
+  --m7-focus-ring: #2c6bed;
+  --m7-veil: rgba(213, 214, 208, 0.78);
+
+  /* material */
+  --m7-face: var(--m7-grain), var(--m7-surface-1);
+  --m7-face-shadow: inset 0 0 0 1px var(--m7-line), 0 1px 0 rgba(34, 35, 31, 0.16);
+  --m7-face-shadow-lift: inset 0 0 0 1px var(--m7-line), 0 1px 0 rgba(34, 35, 31, 0.16), 0 14px 28px -14px rgba(34, 35, 31, 0.38);
+  --m7-head-bg: var(--m7-surface-2);
+  --m7-head-line: var(--m7-line);
+  --m7-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.13  0 0 0 0 0.13  0 0 0 0 0.12  .16 0 0 0 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+  /* One light for the whole board, fixed to the screen, so modules pass through it. */
+  --m7-light: radial-gradient(130% 110% at 12% -10%, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(160deg, rgba(0, 0, 0, 0) 55%, rgba(34, 35, 31, 0.07));
+
+  /* heights: pressed in, resting, lifted */
+  --m7-shadow-rest: 0 1px 0 rgba(34, 35, 31, 0.16);
+  --m7-shadow-lift: 0 14px 28px -14px rgba(34, 35, 31, 0.38);
+  --m7-shadow-inset: inset 0 0 0 1px var(--m7-line);
+  --m7-shadow-far: 0 1px 0 rgba(34, 35, 31, 0.12);
+
+  /* radius by nesting: inner = outer − inset. Tighter than plastic: printed, not moulded. */
+  --m7-radius: 10px;
+  --m7-radius-inner: 6px;
+  --m7-head: 28px;
+
   color-scheme: light;
 }
 
-/* Follow the system unless a theme is chosen explicitly. */
+/* Matte, dark: graphite paper. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
+    --m7-ground: #191a18;
+    --m7-ground-dot: #2e302c;
+    --m7-slot: #1f201d;
+    --m7-surface-1: #262724;
+    --m7-surface-2: #2c2d2a;
+    --m7-surface-3: #1f201d;
+    --m7-highlight: rgba(255, 255, 255, 0.04);
+    --m7-ink-1: #dcddd6;
+    --m7-ink-2: #a2a49c;
+    --m7-ink-3: #6e7069;
+    --m7-line: rgba(220, 221, 214, 0.09);
+    --m7-wash: rgba(220, 221, 214, 0.05);
+    --m7-wash-2: rgba(220, 221, 214, 0.1);
+    --m7-live: #ff4a3d;
+    --m7-node: #dcddd6;
+    --m7-node-ink: #191a18;
+    --m7-focus-ring: #6b9bff;
+    --m7-veil: rgba(25, 26, 24, 0.78);
+    --m7-face-shadow: inset 0 0 0 1px var(--m7-line), 0 1px 0 rgba(0, 0, 0, 0.5);
+    --m7-face-shadow-lift: inset 0 0 0 1px var(--m7-line), 0 1px 0 rgba(0, 0, 0, 0.5), 0 16px 30px -14px rgba(0, 0, 0, 0.8);
+    --m7-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  .07 0 0 0 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+    --m7-light: radial-gradient(130% 110% at 12% -10%, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 55%),
+      linear-gradient(160deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.18));
+    --m7-shadow-rest: 0 1px 0 rgba(0, 0, 0, 0.5);
+    --m7-shadow-lift: 0 16px 30px -14px rgba(0, 0, 0, 0.8);
+    --m7-shadow-far: 0 1px 0 rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --m7-ground: #191a18;
+  --m7-ground-dot: #2e302c;
+  --m7-slot: #1f201d;
+  --m7-surface-1: #262724;
+  --m7-surface-2: #2c2d2a;
+  --m7-surface-3: #1f201d;
+  --m7-highlight: rgba(255, 255, 255, 0.04);
+  --m7-ink-1: #dcddd6;
+  --m7-ink-2: #a2a49c;
+  --m7-ink-3: #6e7069;
+  --m7-line: rgba(220, 221, 214, 0.09);
+  --m7-wash: rgba(220, 221, 214, 0.05);
+  --m7-wash-2: rgba(220, 221, 214, 0.1);
+  --m7-live: #ff4a3d;
+  --m7-node: #dcddd6;
+  --m7-node-ink: #191a18;
+  --m7-focus-ring: #6b9bff;
+  --m7-veil: rgba(25, 26, 24, 0.78);
+  --m7-face-shadow: inset 0 0 0 1px var(--m7-line), 0 1px 0 rgba(0, 0, 0, 0.5);
+  --m7-face-shadow-lift: inset 0 0 0 1px var(--m7-line), 0 1px 0 rgba(0, 0, 0, 0.5), 0 16px 30px -14px rgba(0, 0, 0, 0.8);
+  --m7-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  .07 0 0 0 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+  --m7-light: radial-gradient(130% 110% at 12% -10%, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(160deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.18));
+  --m7-shadow-rest: 0 1px 0 rgba(0, 0, 0, 0.5);
+  --m7-shadow-lift: 0 16px 30px -14px rgba(0, 0, 0, 0.8);
+  --m7-shadow-far: 0 1px 0 rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------- plastic
+   The first look: moulded white plastic, soft top light, deep shadows. */
+:root[data-look='plastic'] {
+  --m7-ground: #e3e6ea;
+  --m7-ground-dot: #c9ced6;
+  --m7-slot: #d8dce1;
+  --m7-surface-1: #ffffff;
+  --m7-surface-2: #f8f9fa;
+  --m7-surface-3: #eceef1;
+  --m7-highlight: rgba(255, 255, 255, 0.95);
+  --m7-ink-1: #14181e;
+  --m7-ink-2: #58606b;
+  --m7-ink-3: #979fa9;
+  --m7-line: rgba(18, 26, 38, 0.09);
+  --m7-wash: rgba(18, 26, 38, 0.05);
+  --m7-wash-2: rgba(18, 26, 38, 0.09);
+  --m7-live: #e2372c;
+  --m7-node: #111316;
+  --m7-node-ink: #ffffff;
+  --m7-focus-ring: #2c6bed;
+  --m7-veil: rgba(227, 230, 234, 0.72);
+  --m7-shadow-rest: 0 1px 1px rgba(16, 24, 40, 0.05), 0 12px 26px -16px rgba(16, 24, 40, 0.32);
+  --m7-shadow-lift: 0 2px 4px rgba(16, 24, 40, 0.06), 0 30px 50px -20px rgba(16, 24, 40, 0.45);
+  --m7-shadow-inset: inset 0 1px 2px rgba(16, 24, 40, 0.07);
+  --m7-shadow-far: 0 1px 0 rgba(16, 24, 40, 0.1);
+  --m7-face: linear-gradient(180deg, var(--m7-surface-1) 0%, var(--m7-surface-2) 55%, var(--m7-surface-3) 100%);
+  --m7-face-shadow: inset 0 1px 0 var(--m7-highlight), inset 0 0 0 1px var(--m7-line), var(--m7-shadow-rest);
+  --m7-face-shadow-lift: inset 0 1px 0 var(--m7-highlight), inset 0 0 0 1px var(--m7-line), var(--m7-shadow-lift);
+  --m7-head-bg: transparent;
+  --m7-head-line: transparent;
+  --m7-grain: none;
+  --m7-light: none;
+  --m7-radius: 18px;
+  --m7-radius-inner: 10px;
+  --m7-head: 30px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-look='plastic']:not([data-theme='light']) {
     --m7-ground: #14161a;
     --m7-ground-dot: #2a2e35;
     --m7-slot: #1b1d22;
@@ -86,13 +204,11 @@
     --m7-shadow-rest: 0 1px 1px rgba(0, 0, 0, 0.3), 0 12px 26px -16px rgba(0, 0, 0, 0.7);
     --m7-shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.3), 0 30px 50px -20px rgba(0, 0, 0, 0.85);
     --m7-shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.4);
-  --m7-shadow-far: 0 1px 0 rgba(0, 0, 0, 0.4);
     --m7-shadow-far: 0 1px 0 rgba(0, 0, 0, 0.4);
     color-scheme: dark;
   }
 }
-
-:root[data-theme='dark'] {
+:root[data-look='plastic'][data-theme='dark'] {
   --m7-ground: #14161a;
   --m7-ground-dot: #2a2e35;
   --m7-slot: #1b1d22;
