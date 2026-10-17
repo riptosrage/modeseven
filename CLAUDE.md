@@ -1,6 +1,6 @@
 # Mode 7: notes for Claude
 
-Mode 7 is Felix's open-source "pegboard" framework: an infinite grid of resizable modules, tap-first, any device, with a tiltable SNES-Mode-7 camera. The engine comes first; a minimal DAW is the first app planned on top. Design rationale lives in `docs/ARCHITECTURE.md` and the "Slab Foundations" proposal doc Felix has.
+Mode 7 is Felix's open-source "pegboard" framework: an infinite grid of resizable modules, tap-first, any device, with a tiltable SNES-Mode-7 camera. The engine comes first; a minimal DAW is the first app planned on top. Start with `docs/PROJECT.md` (vision, decisions, status, research, roadmap); code structure is in `docs/ARCHITECTURE.md`. Keep `docs/PROJECT.md` current: update its status and next-steps sections when a milestone lands or a decision is made.
 
 ## Working with Felix
 
