@@ -9,6 +9,24 @@ Mode 7 is Felix's open-source "pegboard" framework: an infinite grid of resizabl
 - Lean on iOS interaction patterns; Apple is the reference for feel.
 - When he shares a module idea, add it to `docs/MODULE-IDEAS.md` (what it is, how it feels, what engine pieces it needs) rather than building it straight away, unless he says to.
 
+## Staying on target
+
+- **The north star decides.** Phone or Mac, offline: a beat plays, Flow turns a mumbled verse into syllable blocks, a controller drives the knobs, the board rearranges under your thumb. Work that doesn't move toward that, or make the engine more elegant for everything after it, waits. The order is in `docs/PROJECT.md` §6.
+- **Engine first, then the module.** If a module needs something general (tempo, audio routing, assets), build it once in the engine as an action/param/command, then build the module on it.
+- **Finish one thing end to end** (working, tested, live, Felix told what to try) before starting the next. No half-built features on `main`.
+- **Small, deliberate surface.** Before adding an API, option or dependency, check whether an existing piece (actions, params, the doc, tokens) already does it. Prefer MIT/permissive dependencies; never AGPL/GPL.
+- **Felix decides product and feel; you decide engineering.** Ask him only real product questions, a few at a time, each with a recommendation.
+
+## Spending tokens well
+
+When working on this repo:
+- Read `docs/PROJECT.md` and this file, then only the files the task touches. Use search before reading whole files; read large files in parts.
+- Don't re-read files you just wrote. Batch independent commands in one call. Keep test output short (grep for pass/fail).
+- Keep these instruction files lean; details belong in `docs/`. Update `docs/PROJECT.md` when a milestone lands so the next session doesn't rediscover it.
+- Replies to Felix are short: what changed, the version code, one or two things to try, any decision needed.
+
+When the product calls the Claude API (Ask AI, commands in words, code repair): follow `docs/AI.md`. Cheapest model that can do the job, escalate once; cached, stable prefix (tools → system → small board summary); validate locally with `compileModule` before any retry; user's own key, stored on the device only; show the cost.
+
 ## Commands
 
 ```sh

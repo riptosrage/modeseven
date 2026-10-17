@@ -73,7 +73,7 @@ In order. Each line is roughly one working session.
 4. **Kit v1.** Knob, fader, pad, XY, meter, readout, list, toggle, button: each a proper parameter with labels and accessibility. Rebuild the testbed modules from it.
 5. **Audio engine basics.** Audio input/output routing between modules, an asset store for samples (IndexedDB/OPFS; localStorage is too small), then Resample, the sampler/chopper with Signalsmith Stretch, and the vocal recorder.
 6. **Live sync.** Same board on phone and Mac, and the phone as a remote. *Decision pending:* the Mac app as the hub over Wi-Fi with a QR code (recommended first), or a cloud relay.
-7. **Ask AI.** Prompt-to-module in a sandboxed iframe using the kit and the command tool schemas; bring-your-own-key.
+7. **Ask AI.** Prompt-to-module in a sandboxed iframe using the kit and the command tool schemas; bring-your-own-key. The plan (model routing, prompt caching, local validation, evals) is in `docs/AI.md`.
 8. **Looks.** The 1977 cockpit theme (needs reference images from Felix); optional colour or icon for modules when zoomed far out.
 9. **Mac app polish.** Native MIDI bridge, Apple Developer signing so it opens without the right-click step.
 
@@ -83,7 +83,7 @@ Open questions for Felix: the beat module type; sync hub vs cloud; far-away colo
 
 ## 7. Handing over to another agent or developer
 
-**Read in this order:** this file → `CLAUDE.md` (rules of the codebase, how Felix likes to work) → `docs/ARCHITECTURE.md` → `docs/MODULE-IDEAS.md` → `README.md`. Agents that look for `AGENTS.md` get pointed here too.
+**Read in this order:** this file → `CLAUDE.md` (rules of the codebase, how Felix likes to work) → `docs/ARCHITECTURE.md` → `docs/MODULE-IDEAS.md` → `docs/AI.md` (before touching anything that calls the Claude API) → `README.md`. Agents that look for `AGENTS.md` get pointed here too.
 
 **Working with Felix.** He's the designer and decision-maker, not the engineer. Bring him things to try and the few real decisions, not implementation detail. Short, plain, casual; no hype; don't restate his ideas back to him. Lean on iOS patterns. Make the engineering calls yourself.
 
